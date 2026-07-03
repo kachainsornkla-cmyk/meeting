@@ -8,6 +8,7 @@ import {
   CheckCircle, AlertCircle, Users, Award, Bell
 } from 'lucide-react'
 import { playNotificationSound } from '@/utils/audio'
+import { savePushSubscription } from '@/app/actions/push'
 
 export default function UserProfile() {
   const supabase = createClient()
@@ -85,6 +86,10 @@ export default function UserProfile() {
     // Read Notification System permission status
     if ('Notification' in window) {
       setPushPermission(Notification.permission)
+      if (Notification.permission === 'granted') {
+        // Auto-refresh push subscription in database on load to keep it updated
+        subscribeToPush()
+      }
     }
 
     // Read local storage settings
@@ -212,6 +217,49 @@ export default function UserProfile() {
     }
   }
 
+  const subscribeToPush = async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    try {
+      const reg = await navigator.serviceWorker.ready
+      
+      // VAPID Public Key to identify this app
+      const PUBLIC_VAPID_KEY = 'BCZY4R7Mpz3u_LQ39j-Mfm0J9-RFvZ9-rRjeQWuEVKcXd-4fxCq2l485VsWc51rVqoE-mHxCvlMu0O7YejpfSz0'
+      
+      // Convert urlsafe base64 to Uint8Array
+      const padding = '='.repeat((4 - PUBLIC_VAPID_KEY.length % 4) % 4)
+      const base64 = (PUBLIC_VAPID_KEY + padding).replace(/\-/g, '+').replace(/_/g, '/')
+      const rawData = window.atob(base64)
+      const outputArray = new Uint8Array(rawData.length)
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i)
+      }
+
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: outputArray
+        })
+      }
+
+      if (sub) {
+        const subJson = sub.toJSON()
+        if (subJson.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
+          const res = await savePushSubscription({
+            endpoint: subJson.endpoint,
+            keys: {
+              p256dh: subJson.keys.p256dh,
+              auth: subJson.keys.auth
+            }
+          })
+          if (res.error) console.error('DB save subscription error:', res.error)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to subscribe browser to push:', err)
+    }
+  }
+
   const handleRequestPushPermission = async () => {
     if (!('Notification' in window)) {
       alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแจ้งเตือนระบบ')
@@ -221,6 +269,7 @@ export default function UserProfile() {
     setPushPermission(permission)
     if (permission === 'granted') {
       setNotiSuccess('อนุญาตสิทธิ์การแจ้งเตือนสำเร็จ!')
+      await subscribeToPush()
       setTimeout(() => setNotiSuccess(null), 3000)
     } else if (permission === 'denied') {
       alert('สิทธิ์การแจ้งเตือนถูกปฏิเสธ โปรดเปิดอนุญาตการตั้งค่าบนเบราว์เซอร์ของคุณ')

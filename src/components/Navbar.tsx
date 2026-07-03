@@ -125,7 +125,12 @@ export default function Navbar({ userName, role }: NavbarProps) {
                       body: newNoti.content,
                       icon: '/icons/icon-192x192.png',
                       badge: '/icons/icon-192x192.png',
-                      vibrate: [100, 50, 100],
+                      vibrate: [200, 100, 200, 100, 200],
+                      tag: 'booking-alert',
+                      renotify: true,
+                      actions: [
+                        { action: 'open-app', title: '👉 ดูรายละเอียด' }
+                      ],
                       data: { url: '/dashboard' }
                     } as any)
                   })

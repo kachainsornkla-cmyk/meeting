@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createNotification } from './notifications'
+import { triggerPushNotification } from './push'
 
 export async function createBooking(formData: {
   roomId: string
@@ -130,6 +131,13 @@ export async function createBooking(formData: {
               .insert(notificationsToInsert)
             if (insertNotiError) {
               console.error('Bulk notification insert failed:', insertNotiError)
+            } else {
+              // Trigger Web Push in background
+              Promise.all(
+                notificationsToInsert.map(noti =>
+                  triggerPushNotification(noti.user_id, title, content, '/manage')
+                )
+              ).catch(err => console.error('Failed to trigger bulk push notifications:', err))
             }
           }
         }
@@ -228,6 +236,13 @@ export async function cancelBooking(bookingId: string) {
           .insert(notificationsToInsert)
         if (insertNotiError) {
           console.error('Bulk cancellation notification insert failed:', insertNotiError)
+        } else {
+          // Trigger Web Push in background for admins
+          Promise.all(
+            notificationsToInsert.map(noti =>
+              triggerPushNotification(noti.user_id, title, content, '/manage')
+            )
+          ).catch(err => console.error('Failed to trigger bulk push notifications:', err))
         }
       }
     }

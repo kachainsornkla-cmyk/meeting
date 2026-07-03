@@ -8,7 +8,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Handle push notification events from server/background
+// Handle push notification events from server/background (Full features: Banner, Sound, Vibration, Actions)
 self.addEventListener('push', (event) => {
   let data = { title: 'BOOKING PWK-ROOM', body: 'คุณมีการแจ้งเตือนใหม่ในระบบ' };
   
@@ -24,7 +24,15 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
+    vibrate: [200, 100, 200, 100, 200], // Premium vibration pattern (vibrate-pause-vibrate)
+    tag: 'booking-alert',
+    renotify: true,
+    actions: [
+      {
+        action: 'open-app',
+        title: '👉 ดูรายละเอียด'
+      }
+    ],
     data: {
       url: data.url || '/dashboard'
     }
@@ -35,7 +43,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Handle click on background notifications
+// Handle click on background notifications and action buttons
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   

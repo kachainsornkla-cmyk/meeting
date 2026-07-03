@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { triggerPushNotification } from './push'
 
 // Get current user session
 async function getCurrentUser() {
@@ -83,6 +84,10 @@ export async function createNotification(userId: string, title: string, content:
       })
 
     if (error) throw error
+
+    // Trigger background system push notifications via web-push
+    await triggerPushNotification(userId, title, content)
+
     return { success: true }
   } catch (err: any) {
     console.error('Failed to create notification:', err)
