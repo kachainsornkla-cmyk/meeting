@@ -38,6 +38,11 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
   // Day selection modal state
   const [selectedDayBookings, setSelectedDayBookings] = useState<{ date: Date; items: BookingItem[] } | null>(null)
 
+  // Monthly Navigation State
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
   // Calculate statistics
   const total = bookings.length
   const pending = bookings.filter(b => b.status === 'pending').length
@@ -49,16 +54,53 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
     return b.status === filter
   })
 
-  // Calendar logic
-  const getNext30Days = () => {
-    const days = []
-    const today = new Date()
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(today)
-      d.setDate(today.getDate() + i)
-      days.push(d)
+  // Monthly Calendar logic
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1))
+  }
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1))
+  }
+
+  const handleGoToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  const getDaysInMonth = () => {
+    const firstDay = new Date(year, month, 1)
+    const startDayOfWeek = firstDay.getDay() // 0 = Sun, 1 = Mon...
+    const totalDays = new Date(year, month + 1, 0).getDate()
+    const totalDaysPrev = new Date(year, month, 0).getDate()
+
+    const cells = []
+
+    // 1. Previous month padding cells
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      cells.push({
+        date: new Date(year, month - 1, totalDaysPrev - i),
+        isCurrentMonth: false
+      })
     }
-    return days
+
+    // 2. Current month cells
+    for (let i = 1; i <= totalDays; i++) {
+      cells.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true
+      })
+    }
+
+    // 3. Next month padding cells to round to 42 cells (6 rows)
+    const remaining = 42 - cells.length
+    for (let i = 1; i <= remaining; i++) {
+      cells.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false
+      })
+    }
+
+    return cells
   }
 
   const isSameDate = (date1: Date, date2Str: string) => {
@@ -68,14 +110,10 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
            date1.getDate() === date2.getDate()
   }
 
-  const formatDateShort = (d: Date) => {
-    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
-  }
-
-  const getDayName = (d: Date) => {
-    const names = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์']
-    return names[d.getDay()]
-  }
+  const THAI_MONTHS = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ]
 
   const handleApprove = async (id: string) => {
     if (!confirm('ยืนยันการอนุมัติการจองห้องประชุมนี้?')) return
@@ -284,7 +322,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
             }}
           >
             <CalendarDays size={14} />
-            <span>ปฏิทิน 30 วัน</span>
+            <span>ปฏิทินรายเดือน</span>
           </button>
         </div>
       </div>
@@ -434,73 +472,136 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
           )}
         </>
       ) : (
-        /* 30-DAY CALENDAR VIEW (GRID) */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: '16px'
-        }}>
-          {getNext30Days().map((day, idx) => {
-            const dayBookings = bookings.filter(b => isSameDate(day, b.start_time))
-            const isToday = isSameDate(day, new Date().toISOString())
+        /* MONTHLY CALENDAR VIEW */
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          
+          {/* Calendar Header / Navigation */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handlePrevMonth} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                ◀ เดือนก่อนหน้า
+              </button>
+              <button onClick={handleGoToday} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                วันนี้
+              </button>
+              <button onClick={handleNextMonth} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                เดือนถัดไป ▶
+              </button>
+            </div>
             
-            return (
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>
+              {THAI_MONTHS[month]} {year + 543}
+            </h3>
+          </div>
+
+          {/* Weekdays Header */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '8px',
+            textAlign: 'center',
+            marginBottom: '8px',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            color: 'var(--text-secondary)'
+          }}>
+            {['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'].map((day, idx) => (
               <div 
                 key={idx} 
-                className="glass-panel animate-fade-in" 
-                style={{
-                  padding: '16px',
-                  border: isToday ? '2px solid var(--primary)' : '1px solid rgba(0,0,0,0.06)',
-                  background: isToday ? 'rgba(255, 182, 193, 0.12)' : 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  minHeight: '140px'
-                }}
-                onClick={() => setSelectedDayBookings({ date: day, items: dayBookings })}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(255, 182, 193, 0.2)'
-                  e.currentTarget.style.borderColor = 'var(--primary)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none'
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.style.borderColor = isToday ? 'var(--primary)' : 'rgba(0,0,0,0.06)'
+                style={{ 
+                  padding: '8px 0', 
+                  background: idx === 0 || idx === 6 ? 'rgba(255, 182, 193, 0.08)' : 'rgba(0,0,0,0.02)',
+                  borderRadius: '6px',
+                  color: idx === 0 ? 'var(--danger)' : idx === 6 ? 'var(--primary)' : 'var(--text-secondary)'
                 }}
               >
-                {/* Cell Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    {formatDateShort(day)}
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.65rem', 
-                    padding: '2px 8px', 
-                    borderRadius: '9999px',
-                    background: isToday ? 'var(--primary)' : 'rgba(0,0,0,0.04)',
-                    color: isToday ? 'white' : 'var(--text-secondary)',
-                    fontWeight: 600
-                  }}>
-                    {getDayName(day)}
-                  </span>
-                </div>
+                {day}
+              </div>
+            ))}
+          </div>
 
-                {/* Event Pills */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, overflowY: 'auto' }}>
-                  {dayBookings.length === 0 ? (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic', margin: 'auto 0' }}>
-                      ไม่มีการจอง
+          {/* Calendar Days Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '8px'
+          }}>
+            {getDaysInMonth().map((cell, idx) => {
+              const dayBookings = bookings.filter(b => isSameDate(cell.date, b.start_time))
+              const isToday = isSameDate(cell.date, new Date().toISOString())
+              
+              return (
+                <div 
+                  key={idx} 
+                  style={{
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: isToday ? '2px solid var(--primary)' : '1px solid rgba(0,0,0,0.06)',
+                    background: !cell.isCurrentMonth 
+                      ? 'rgba(0,0,0,0.015)' 
+                      : isToday 
+                        ? 'rgba(255, 182, 193, 0.12)' 
+                        : 'white',
+                    opacity: cell.isCurrentMonth ? 1 : 0.4,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    minHeight: '110px'
+                  }}
+                  onClick={() => setSelectedDayBookings({ date: cell.date, items: dayBookings })}
+                  onMouseEnter={(e) => {
+                    if (cell.isCurrentMonth) {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 6px 15px rgba(255, 182, 193, 0.15)'
+                      e.currentTarget.style.borderColor = 'var(--primary)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none'
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.borderColor = isToday ? 'var(--primary)' : 'rgba(0,0,0,0.06)'
+                  }}
+                >
+                  {/* Date Number & Counter */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem', 
+                      color: isToday ? 'var(--primary)' : 'var(--text-primary)' 
+                    }}>
+                      {cell.date.getDate()}
                     </span>
-                  ) : (
-                    dayBookings.slice(0, 3).map((b) => (
+                    {dayBookings.length > 0 && (
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        padding: '1px 5px', 
+                        borderRadius: '9999px',
+                        background: 'var(--primary)',
+                        color: 'white',
+                        fontWeight: 600
+                      }}>
+                        {dayBookings.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Summary Event Pills */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, overflow: 'hidden' }}>
+                    {dayBookings.slice(0, 2).map((b) => (
                       <div 
                         key={b.id} 
                         style={{
-                          fontSize: '0.7rem',
-                          padding: '4px 6px',
+                          fontSize: '0.65rem',
+                          padding: '3px 4px',
                           borderRadius: '4px',
                           background: b.status === 'approved' ? 'rgba(34, 197, 94, 0.08)' : b.status === 'pending' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(0,0,0,0.03)',
                           borderLeft: b.status === 'approved' ? '3px solid var(--success)' : b.status === 'pending' ? '3px solid var(--warning)' : '3px solid var(--text-muted)',
@@ -512,17 +613,18 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
                       >
                         {formatTime(b.start_time)} {b.roomName}
                       </div>
-                    ))
-                  )}
-                  {dayBookings.length > 3 && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, textAlign: 'right' }}>
-                      + อีก {dayBookings.length - 3} รายการ
-                    </div>
-                  )}
+                    ))}
+                    {dayBookings.length > 2 && (
+                      <div style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 600, textAlign: 'right' }}>
+                        + อีก {dayBookings.length - 2} รายการ
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+
         </div>
       )}
 
