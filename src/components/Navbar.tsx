@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -15,11 +16,41 @@ export default function Navbar({ userName, role }: NavbarProps) {
   const pathname = usePathname()
   const supabase = createClient()
 
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null)
+
+  useEffect(() => {
+    async function getProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('id', user.id)
+          .single()
+        if (data) {
+          setProfile(data)
+        }
+      }
+    }
+    getProfile()
+
+    // Listen for custom profile update events to reload navbar details instantly
+    const handleProfileUpdate = () => {
+      getProfile()
+    }
+    window.addEventListener('profile-updated', handleProfileUpdate)
+    return () => {
+      window.removeEventListener('profile-updated', handleProfileUpdate)
+    }
+  }, [])
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
+
+  const displayName = profile?.full_name || userName
 
   return (
     <nav className="navbar">
@@ -70,25 +101,70 @@ export default function Navbar({ userName, role }: NavbarProps) {
                 </Link>
               </>
             )}
+            <Link 
+              href="/profile" 
+              className={`nav-link ${pathname === '/profile' ? 'active' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <User size={16} />
+              โปรไฟล์
+            </Link>
           </div>
 
           <div className="nav-user">
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-              <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
-                {userName}
-              </span>
-              {role === 'admin' ? (
-                <span className="badge badge-admin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                  <Shield size={10} style={{ marginRight: '2px' }} />
-                  ADMIN
+            <Link href="/profile" className="nav-profile-link" style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              textDecoration: 'none',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
+                  {displayName}
                 </span>
-              ) : (
-                <span className="badge badge-user" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                  <User size={10} style={{ marginRight: '2px' }} />
-                  USER
-                </span>
-              )}
-            </div>
+                {role === 'admin' ? (
+                  <span className="badge badge-admin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                    <Shield size={10} style={{ marginRight: '2px' }} />
+                    ADMIN
+                  </span>
+                ) : (
+                  <span className="badge badge-user" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                    <User size={10} style={{ marginRight: '2px' }} />
+                    USER
+                  </span>
+                )}
+              </div>
+
+              {/* Avatar Circle */}
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: 'rgba(255, 182, 193, 0.25)',
+                border: '2px solid var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                color: 'var(--primary)',
+                fontSize: '1rem',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}>
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Avatar" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                ) : (
+                  <span>{displayName.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+            </Link>
 
             <button 
               onClick={handleLogout} 
