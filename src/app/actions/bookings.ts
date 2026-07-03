@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createNotification } from './notifications'
 
 export async function createBooking(formData: {
   roomId: string
@@ -106,6 +107,21 @@ export async function cancelBooking(bookingId: string) {
     return { error: 'รายการจองนี้ได้รับการยกเลิกไปแล้ว' }
   }
 
+  // Fetch booking details for notification context before updating
+  const { data: bookingDetail } = await supabase
+    .from('bookings')
+    .select(`
+      start_time,
+      rooms (
+        name
+      ),
+      profiles (
+        full_name
+      )
+    `)
+    .eq('id', bookingId)
+    .single()
+
   // Update status to cancelled
   const { error: updateError } = await supabase
     .from('bookings')
@@ -114,6 +130,26 @@ export async function cancelBooking(bookingId: string) {
 
   if (updateError) {
     return { error: 'ไม่สามารถยกเลิกรายการจองได้' }
+  }
+
+  // Notify admins of cancellation
+  if (bookingDetail) {
+    const roomName = (bookingDetail.rooms as any)?.name || 'ห้องประชุม'
+    const userName = (bookingDetail.profiles as any)?.full_name || 'ผู้ใช้'
+    const dateStr = new Date(bookingDetail.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+    const title = 'ยกเลิกการจองห้องประชุม'
+    const content = `${userName} ได้กดยกเลิกการจองห้อง ${roomName} วันที่ ${dateStr} แล้ว`
+
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'subadmin', 'admin booking'])
+
+    if (admins) {
+      for (const admin of admins) {
+        await createNotification(admin.id, title, content)
+      }
+    }
   }
 
   revalidatePath('/dashboard')
@@ -141,6 +177,19 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
     return { error: 'คุณไม่มีสิทธิ์ในการอนุมัติหรือปฏิเสธคำขอจองห้องประชุม' }
   }
 
+  // Fetch booking details to notify the user before status update
+  const { data: bookingData } = await supabase
+    .from('bookings')
+    .select(`
+      user_id,
+      start_time,
+      rooms (
+        name
+      )
+    `)
+    .eq('id', bookingId)
+    .single()
+
   // Update status
   const updateData: any = { status }
   if (status === 'rejected' && rejectionReason) {
@@ -154,6 +203,18 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
 
   if (updateError) {
     return { error: 'ไม่สามารถเปลี่ยนสถานะรายการจองได้' }
+  }
+
+  // Notify the booking owner of approval or rejection
+  if (bookingData) {
+    const roomName = (bookingData.rooms as any)?.name || 'ห้องประชุม'
+    const dateStr = new Date(bookingData.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+    const title = status === 'approved' ? 'อนุมัติการจองห้องประชุมแล้ว' : 'ปฏิเสธการจองห้องประชุม'
+    const content = status === 'approved'
+      ? `คำขอจองห้อง ${roomName} ในวันที่ ${dateStr} ของคุณได้รับการอนุมัติแล้ว`
+      : `คำขอจองห้อง ${roomName} ในวันที่ ${dateStr} ของคุณถูกปฏิเสธ ${rejectionReason ? `เนื่องจาก: ${rejectionReason}` : ''}`
+
+    await createNotification(bookingData.user_id, title, content)
   }
 
   revalidatePath('/manage')

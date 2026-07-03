@@ -5,8 +5,9 @@ import { createClient } from '@/utils/supabase/client'
 import { 
   User, Mail, Phone, Briefcase, GraduationCap, 
   Home, BookOpen, Camera, Key, RefreshCw, 
-  CheckCircle, AlertCircle, Users, Award 
+  CheckCircle, AlertCircle, Users, Award, Bell
 } from 'lucide-react'
+import { playNotificationSound } from '@/utils/audio'
 
 export default function UserProfile() {
   const supabase = createClient()
@@ -28,6 +29,12 @@ export default function UserProfile() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
+  // Notification settings fields
+  const [pushPermission, setPushPermission] = useState<string>('default')
+  const [soundType, setSoundType] = useState('bell')
+  const [soundVolume, setSoundVolume] = useState(0.5)
+  const [showPopup, setShowPopup] = useState(true)
+
   // State Management
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -38,6 +45,7 @@ export default function UserProfile() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState<string | null>(null)
   const [passwordErrorMsg, setPasswordErrorMsg] = useState<string | null>(null)
+  const [notiSuccess, setNotiSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadProfile() {
@@ -71,7 +79,20 @@ export default function UserProfile() {
         setLoading(false)
       }
     }
+    
     loadProfile()
+
+    // Read Notification System permission status
+    if ('Notification' in window) {
+      setPushPermission(Notification.permission)
+    }
+
+    // Read local storage settings
+    if (typeof window !== 'undefined') {
+      setSoundType(localStorage.getItem('noti_sound_type') || 'bell')
+      setSoundVolume(parseFloat(localStorage.getItem('noti_sound_volume') || '0.5'))
+      setShowPopup(localStorage.getItem('noti_show_popup') !== 'false')
+    }
   }, [])
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -138,16 +159,17 @@ export default function UserProfile() {
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // Update profiles table with avatar_url
+      // Update avatar in profiles table
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', user.id)
 
       if (updateError) throw updateError
 
       setAvatarUrl(publicUrl)
       setSuccessMsg('อัปโหลดรูปภาพโปรไฟล์เรียบร้อยแล้ว')
+      // Dispatch event to refresh Navbar
       window.dispatchEvent(new Event('profile-updated'))
     } catch (err: any) {
       setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')
@@ -158,20 +180,20 @@ export default function UserProfile() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    setPasswordSuccessMsg(null)
+    setPasswordErrorMsg(null)
+
+    if (newPassword !== confirmPassword) {
+      setPasswordErrorMsg('รหัสผ่านและการยืนยันไม่ตรงกัน')
+      return
+    }
+
     if (newPassword.length < 6) {
       setPasswordErrorMsg('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร')
       return
     }
 
-    if (newPassword !== confirmPassword) {
-      setPasswordErrorMsg('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน')
-      return
-    }
-
     setPasswordLoading(true)
-    setPasswordSuccessMsg(null)
-    setPasswordErrorMsg(null)
 
     try {
       const { error } = await supabase.auth.updateUser({
@@ -188,6 +210,33 @@ export default function UserProfile() {
     } finally {
       setPasswordLoading(false)
     }
+  }
+
+  const handleRequestPushPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแจ้งเตือนระบบ')
+      return
+    }
+    const permission = await Notification.requestPermission()
+    setPushPermission(permission)
+    if (permission === 'granted') {
+      setNotiSuccess('อนุญาตสิทธิ์การแจ้งเตือนสำเร็จ!')
+      setTimeout(() => setNotiSuccess(null), 3000)
+    } else if (permission === 'denied') {
+      alert('สิทธิ์การแจ้งเตือนถูกปฏิเสธ โปรดเปิดอนุญาตการตั้งค่าบนเบราว์เซอร์ของคุณ')
+    }
+  }
+
+  const handleSaveNotiSettings = (newSound: string, newVolume: number, newPopup: boolean) => {
+    localStorage.setItem('noti_sound_type', newSound)
+    localStorage.setItem('noti_sound_volume', newVolume.toString())
+    localStorage.setItem('noti_show_popup', newPopup.toString())
+    
+    // Play test audio at this specific volume immediately
+    playNotificationSound(newSound, newVolume)
+
+    setNotiSuccess('บันทึกและจำลองเสียงแจ้งเตือนแล้ว!')
+    setTimeout(() => setNotiSuccess(null), 3000)
   }
 
   if (loading) {
@@ -207,7 +256,7 @@ export default function UserProfile() {
       paddingTop: '20px'
     }}>
       
-      {/* LEFT COLUMN: Avatar & Change Password */}
+      {/* LEFT COLUMN: Avatar, Password, & Notification Settings */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Card 1: Avatar Upload & Quick Stats */}
@@ -355,6 +404,154 @@ export default function UserProfile() {
             </button>
           </form>
         </div>
+
+        {/* Card 3: Notification Settings */}
+        <div className="glass-panel" style={{ padding: '30px' }}>
+          <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+            <Bell size={18} style={{ color: 'var(--primary)' }} />
+            การตั้งค่าการแจ้งเตือน
+          </h3>
+
+          {notiSuccess && (
+            <div style={{
+              background: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.2)',
+              borderRadius: '8px',
+              color: 'var(--success)',
+              fontSize: '0.85rem',
+              padding: '10px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <CheckCircle size={14} />
+              {notiSuccess}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {/* System Notification Status & Request button */}
+            <div style={{ 
+              padding: '12px', 
+              background: 'rgba(0,0,0,0.015)', 
+              border: '1px solid var(--border-color)', 
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>การแจ้งเตือนผ่านเบราว์เซอร์:</span>
+                {pushPermission === 'granted' ? (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 700 }}>🟢 เปิดสิทธิ์แล้ว</span>
+                ) : pushPermission === 'denied' ? (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--danger)', fontWeight: 700 }}>🔴 บล็อกสิทธิ์อยู่</span>
+                ) : (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>🟡 รอการอนุญาต</span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.35 }}>
+                {pushPermission === 'granted' 
+                  ? 'ระบบจะแสดงป๊อปอัปแจ้งเตือนบนหน้าจอมือถือหรือคอมพิวเตอร์ของคุณแม้จะปิดหน้าแอปอยู่'
+                  : pushPermission === 'denied'
+                    ? 'สิทธิ์การแจ้งเตือนถูกปิดกั้น กรุณาเปิดการอนุญาตในเมนูตั้งค่าของเบราว์เซอร์/มือถือของคุณ'
+                    : 'อนุญาตสิทธิ์เพื่อให้ระบบสามารถส่งการแจ้งเตือนเด้งขึ้นบนอุปกรณ์ของคุณได้'
+                }
+              </p>
+              {pushPermission !== 'granted' && (
+                <button 
+                  type="button" 
+                  onClick={handleRequestPushPermission}
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', padding: '6px 12px', fontSize: '0.78rem', marginTop: '4px' }}
+                >
+                  ขอสิทธิ์การแจ้งเตือน
+                </button>
+              )}
+            </div>
+
+            {/* Sound Style selection dropdown */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>รูปแบบเสียงแจ้งเตือน (Ringtone)</span>
+                <button 
+                  type="button" 
+                  onClick={() => playNotificationSound(soundType, soundVolume)}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  🔊 ทดลองฟัง
+                </button>
+              </label>
+              <select 
+                className="form-input" 
+                value={soundType}
+                onChange={(e) => {
+                  setSoundType(e.target.value)
+                  handleSaveNotiSettings(e.target.value, soundVolume, showPopup)
+                }}
+                style={{ appearance: 'auto' }}
+              >
+                <option value="bell">เสียงกริ่งสดใส (Bright Bell)</option>
+                <option value="chime">เสียงระฆังคู่ (Double Chime)</option>
+                <option value="beep">เสียงดิจิตอลสั้น (Digital Beep)</option>
+                <option value="siren">เสียงเตือนภัยเลื่อนถี่ (Siren Pulse)</option>
+              </select>
+            </div>
+
+            {/* Volume level slider */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>ระดับความดังเสียง</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>
+                  {Math.round(soundVolume * 100)}%
+                </span>
+              </label>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.05"
+                value={soundVolume}
+                onChange={(e) => {
+                  setSoundVolume(parseFloat(e.target.value))
+                }}
+                onMouseUp={() => {
+                  handleSaveNotiSettings(soundType, soundVolume, showPopup)
+                }}
+                onTouchEnd={() => {
+                  handleSaveNotiSettings(soundType, soundVolume, showPopup)
+                }}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--primary)',
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+
+            {/* In-app Popup toggle dropdown */}
+            <div className="form-group">
+              <label className="form-label">แสดงป๊อปอัปแจ้งเตือนในแอป (Toast Popup)</label>
+              <select 
+                className="form-input" 
+                value={showPopup ? 'true' : 'false'}
+                onChange={(e) => {
+                  const val = e.target.value === 'true'
+                  setShowPopup(val)
+                  handleSaveNotiSettings(soundType, soundVolume, val)
+                }}
+                style={{ appearance: 'auto' }}
+              >
+                <option value="true">เปิด (แนะนำ)</option>
+                <option value="false">ปิด</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       {/* RIGHT COLUMN: Personal Info Form */}
@@ -441,13 +638,13 @@ export default function UserProfile() {
               className="form-input" 
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="089-XXXXXXX"
+              placeholder="0812345678"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              <BookOpen size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+              <Users size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
               กลุ่มสาระการเรียนรู้ (Learning Group)
             </label>
             <select 
@@ -456,23 +653,23 @@ export default function UserProfile() {
               onChange={(e) => setLearningGroup(e.target.value)}
               style={{ appearance: 'auto' }}
             >
-              <option value="">-- เลือกกลุ่มสาระฯ --</option>
-              <option value="กลุ่มสาระฯ ภาษาไทย">กลุ่มสาระฯ ภาษาไทย</option>
-              <option value="กลุ่มสาระฯ คณิตศาสตร์">กลุ่มสาระฯ คณิตศาสตร์</option>
-              <option value="กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี</option>
-              <option value="กลุ่มสาระฯ สังคมศึกษา ศาสนา และวัฒนธรรม">กลุ่มสาระฯ สังคมศึกษา ศาสนา และวัฒนธรรม</option>
-              <option value="กลุ่มสาระฯ สุขศึกษาและพลศึกษา">กลุ่มสาระฯ สุขศึกษาและพลศึกษา</option>
-              <option value="กลุ่มสาระฯ ศิลปะ">กลุ่มสาระฯ ศิลปะ</option>
-              <option value="กลุ่มสาระฯ การงานอาชีพ">กลุ่มสาระฯ การงานอาชีพ</option>
-              <option value="กลุ่มสาระฯ ภาษาต่างประเทศ">กลุ่มสาระฯ ภาษาต่างประเทศ</option>
-              <option value="กิจกรรมพัฒนาผู้เรียน">กิจกรรมพัฒนาผู้เรียน</option>
-              <option value="อื่นๆ / ไม่ระบุ">อื่นๆ / ไม่ระบุ</option>
+              <option value="">-- เลือกกลุ่มสาระ --</option>
+              <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+              <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+              <option value="ภาษาไทย">ภาษาไทย</option>
+              <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+              <option value="สังคมศึกษา ศาสนา และวัฒนธรรม">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+              <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+              <option value="ศิลปะ">ศิลปะ</option>
+              <option value="การงานอาชีพ">การงานอาชีพ</option>
+              <option value="กิจกรรมพัฒนาผู้เรียน/แนะแนว">กิจกรรมพัฒนาผู้เรียน/แนะแนว</option>
+              <option value="ฝ่ายธุรการ/สนับสนุน">ฝ่ายธุรการ/สนับสนุน</option>
             </select>
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              <Users size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+              <BookOpen size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
               กลุ่มงาน (Work Group)
             </label>
             <select 
@@ -483,10 +680,10 @@ export default function UserProfile() {
             >
               <option value="">-- เลือกกลุ่มงาน --</option>
               <option value="กลุ่มบริหารวิชาการ">กลุ่มบริหารวิชาการ</option>
-              <option value="กลุ่มบริหารงบประมาณ">กลุ่มบริหารงบประมาณ</option>
-              <option value="กลุ่มบริหารงานบุคคล">กลุ่มบริหารงานบุคคล</option>
-              <option value="กลุ่มบริหารทั่วไป">กลุ่มบริหารทั่วไป</option>
-              <option value="อื่นๆ / ไม่ระบุ">อื่นๆ / ไม่ระบุ</option>
+              <option value="กลุ่มบริหารงบประมาณและบุคคล">กลุ่มบริหารงบประมาณและบุคคล</option>
+              <option value="กลุ่มบริหารงานทั่วไป">กลุ่มบริหารงานทั่วไป</option>
+              <option value="กลุ่มบริหารกิจการนักเรียน">กลุ่มบริหารกิจการนักเรียน</option>
+              <option value="ไม่มี (ครูผู้สอนอย่างเดียว)">ไม่มี (ครูผู้สอนอย่างเดียว)</option>
             </select>
           </div>
 
