@@ -25,8 +25,9 @@ export default async function AdminPage() {
     redirect('/login')
   }
 
-  if (profile.role !== 'admin') {
-    redirect('/dashboard') // Regular users can't see this page
+  const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+  if (!allowedAdminRoles.includes(profile.role)) {
+    redirect('/dashboard') // Non-admins can't see this page
   }
 
   // Fetch all bookings
@@ -69,7 +70,7 @@ export default async function AdminPage() {
     <>
       <Navbar userName={profile.full_name || 'Admin'} role={profile.role} />
       <main className="container animate-fade-in">
-        <AdminDashboard bookings={formattedBookings} />
+        <AdminDashboard bookings={formattedBookings} userRole={profile.role} />
       </main>
     </>
   )

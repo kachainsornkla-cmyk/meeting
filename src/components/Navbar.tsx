@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LogOut, Calendar, Shield, User, LayoutDashboard, ListPlus } from 'lucide-react'
+import { LogOut, Calendar, Shield, User, LayoutDashboard, ListPlus, Users, Home } from 'lucide-react'
 
 interface NavbarProps {
   userName: string
@@ -51,18 +51,67 @@ export default function Navbar({ userName, role }: NavbarProps) {
   }
 
   const displayName = profile?.full_name || userName
+  const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+  const isAdminArea = allowedAdminRoles.includes(role)
+
+  const renderBadge = () => {
+    switch (role) {
+      case 'admin':
+        return (
+          <span className="badge badge-admin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <Shield size={10} style={{ marginRight: '2px' }} />
+            ADMIN
+          </span>
+        )
+      case 'subadmin':
+        return (
+          <span className="badge badge-subadmin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <Shield size={10} style={{ marginRight: '2px' }} />
+            SUB-ADMIN
+          </span>
+        )
+      case 'admin booking':
+        return (
+          <span className="badge badge-booking-admin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <Calendar size={10} style={{ marginRight: '2px' }} />
+            BOOKING ADMIN
+          </span>
+        )
+      case 'Housekeeper':
+        return (
+          <span className="badge badge-housekeeper" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <Home size={10} style={{ marginRight: '2px' }} />
+            HOUSEKEEPER
+          </span>
+        )
+      case 'teacher':
+        return (
+          <span className="badge badge-teacher" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <User size={10} style={{ marginRight: '2px' }} />
+            TEACHER
+          </span>
+        )
+      default:
+        return (
+          <span className="badge badge-user" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+            <User size={10} style={{ marginRight: '2px' }} />
+            USER
+          </span>
+        )
+    }
+  }
 
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link href={role === 'admin' ? '/admin' : '/dashboard'} className="nav-brand">
+        <Link href={isAdminArea ? '/admin' : '/dashboard'} className="nav-brand">
           <Calendar size={24} />
           <span>BOOKING PWK-ROOM</span>
         </Link>
 
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           <div className="nav-menu">
-            {role === 'admin' ? (
+            {isAdminArea ? (
               <>
                 <Link 
                   href="/admin" 
@@ -72,14 +121,26 @@ export default function Navbar({ userName, role }: NavbarProps) {
                   <LayoutDashboard size={16} />
                   การจองทั้งหมด
                 </Link>
-                <Link 
-                  href="/admin/rooms" 
-                  className={`nav-link ${pathname === '/admin/rooms' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <ListPlus size={16} />
-                  จัดการห้องประชุม
-                </Link>
+                {['admin', 'subadmin'].includes(role) && (
+                  <Link 
+                    href="/admin/rooms" 
+                    className={`nav-link ${pathname === '/admin/rooms' ? 'active' : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <ListPlus size={16} />
+                    จัดการห้องประชุม
+                  </Link>
+                )}
+                {role === 'admin' && (
+                  <Link 
+                    href="/admin/users" 
+                    className={`nav-link ${pathname === '/admin/users' ? 'active' : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Users size={16} />
+                    จัดการผู้ใช้งาน
+                  </Link>
+                )}
               </>
             ) : (
               <>
@@ -125,17 +186,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
                 <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
                   {displayName}
                 </span>
-                {role === 'admin' ? (
-                  <span className="badge badge-admin" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                    <Shield size={10} style={{ marginRight: '2px' }} />
-                    ADMIN
-                  </span>
-                ) : (
-                  <span className="badge badge-user" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                    <User size={10} style={{ marginRight: '2px' }} />
-                    USER
-                  </span>
-                )}
+                {renderBadge()}
               </div>
 
               {/* Avatar Circle */}

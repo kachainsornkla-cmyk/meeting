@@ -51,16 +51,33 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     const role = profile?.role || 'user'
+    const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
 
     // Block non-admins from /admin
-    if (path.startsWith('/admin') && role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+    if (path.startsWith('/admin')) {
+      if (!allowedAdminRoles.includes(role)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+
+      // /admin/users is restricted to super admin only
+      if (path.startsWith('/admin/users') && role !== 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return NextResponse.redirect(url)
+      }
+
+      // /admin/rooms is restricted to admin and subadmin only
+      if (path.startsWith('/admin/rooms') && !['admin', 'subadmin'].includes(role)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return NextResponse.redirect(url)
+      }
     }
 
-    // Redirect admins away from user dashboard to admin panel for better UX
-    if (path.startsWith('/dashboard') && role === 'admin') {
+    // Redirect administrative roles away from user dashboard to admin panel for better UX
+    if (path.startsWith('/dashboard') && allowedAdminRoles.includes(role)) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin'
       return NextResponse.redirect(url)
@@ -69,7 +86,7 @@ export async function updateSession(request: NextRequest) {
     // Redirect logged in users away from auth pages
     if (path === '/' || path === '/login' || path === '/register') {
       const url = request.nextUrl.clone()
-      url.pathname = role === 'admin' ? '/admin' : '/dashboard'
+      url.pathname = allowedAdminRoles.includes(role) ? '/admin' : '/dashboard'
       return NextResponse.redirect(url)
     }
   }

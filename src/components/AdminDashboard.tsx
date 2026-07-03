@@ -20,9 +20,10 @@ interface BookingItem {
 
 interface AdminDashboardProps {
   bookings: BookingItem[]
+  userRole?: string
 }
 
-export default function AdminDashboard({ bookings }: AdminDashboardProps) {
+export default function AdminDashboard({ bookings, userRole }: AdminDashboardProps) {
   const [filter, setFilter] = useState<string>('all')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   
@@ -94,6 +95,54 @@ export default function AdminDashboard({ bookings }: AdminDashboardProps) {
 
   return (
     <div style={{ marginTop: '24px' }}>
+      {userRole === 'Housekeeper' && (
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.08)',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
+          borderRadius: '12px',
+          color: 'var(--text-primary)',
+          padding: '16px 20px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <ShieldAlert size={20} style={{ color: 'var(--success)' }} />
+          <div>
+            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '2px', color: 'var(--success)' }}>
+              สิทธิ์การใช้งาน: แม่บ้าน / ผู้ดูแลความสะอาด (ดูอย่างเดียว)
+            </strong>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              คุณสามารถตรวจสอบรายการจองห้องประชุมทั้งหมดเพื่อใช้วางแผนการทำความสะอาดและจัดเตรียมห้องได้เท่านั้น ไม่สามารถอนุมัติหรือปฏิเสธคำขอได้
+            </span>
+          </div>
+        </div>
+      )}
+
+      {userRole === 'admin booking' && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          borderRadius: '12px',
+          color: 'var(--text-primary)',
+          padding: '16px 20px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <ShieldAlert size={20} style={{ color: 'var(--primary)' }} />
+          <div>
+            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '2px', color: 'var(--primary)' }}>
+              สิทธิ์การใช้งาน: ผู้ดูแลการจอง (Booking Admin)
+            </strong>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              คุณสามารถอนุมัติหรือปฏิเสธคำขอจองห้องประชุมได้เท่านั้น ไม่สามารถจัดการข้อมูลห้องประชุมหรือสมาชิกในระบบได้
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Statistics Banner */}
       <div style={{
         display: 'grid',
@@ -203,7 +252,7 @@ export default function AdminDashboard({ bookings }: AdminDashboardProps) {
                   {getStatusBadge(b.status)}
 
                   {/* Actions for Pending */}
-                  {b.status === 'pending' && (
+                  {b.status === 'pending' && userRole !== 'Housekeeper' && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         onClick={() => handleApprove(b.id)}

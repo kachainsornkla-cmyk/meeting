@@ -3,8 +3,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Verify user is an Admin
-async function verifyAdmin() {
+// Verify user is an Admin or Subadmin
+async function verifyAdminOrSubadmin() {
   const supabase = await createClient()
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) {
@@ -17,8 +17,8 @@ async function verifyAdmin() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
-    throw new Error('เฉพาะผู้ดูแลระบบเท่านั้นที่ทำรายการนี้ได้')
+  if (!['admin', 'subadmin'].includes(profile?.role || '')) {
+    throw new Error('เฉพาะผู้ดูแลระบบหรือผู้ดูแลระบบย่อยเท่านั้นที่ทำรายการนี้ได้')
   }
 
   return supabase
@@ -32,7 +32,7 @@ export async function addRoom(formData: {
   imageUrl: string
 }) {
   try {
-    const supabase = await verifyAdmin()
+    const supabase = await verifyAdminOrSubadmin()
 
     const { error } = await supabase
       .from('rooms')
@@ -67,7 +67,7 @@ export async function editRoom(
   }
 ) {
   try {
-    const supabase = await verifyAdmin()
+    const supabase = await verifyAdminOrSubadmin()
 
     const { error } = await supabase
       .from('rooms')
@@ -93,7 +93,7 @@ export async function editRoom(
 
 export async function deleteRoom(id: string) {
   try {
-    const supabase = await verifyAdmin()
+    const supabase = await verifyAdminOrSubadmin()
 
     const { error } = await supabase
       .from('rooms')
