@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   LogOut, Calendar, Shield, User, LayoutDashboard, 
-  ListPlus, Users, Home, Bell, X 
+  ListPlus, Users, Home, Bell, X, Menu
 } from 'lucide-react'
 import { playNotificationSound } from '@/utils/audio'
 import { 
@@ -34,6 +34,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isNotiOpen, setIsNotiOpen] = useState(false)
   const [toast, setToast] = useState<{ title: string; content: string } | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Fetch initial profile & notifications
   useEffect(() => {
@@ -671,8 +672,165 @@ export default function Navbar({ userName, role }: NavbarProps) {
               <span>ออก</span>
             </button>
           </div>
+
+          {/* Mobile Hamburger Toggle */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            className="btn btn-secondary mobile-menu-toggle" 
+            style={{
+              padding: '8px',
+              borderRadius: '50%',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 182, 193, 0.12)',
+              color: 'var(--primary)',
+              border: 'none',
+              cursor: 'pointer',
+              width: '38px',
+              height: '38px'
+            }}
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobileMenuOpen && (
+        <div className="mobile-drawer animate-fade-in" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          padding: '16px 24px',
+          background: 'white',
+          borderBottom: '1px solid var(--border-color)',
+          boxShadow: '0 8px 16px rgba(0,0,0,0.05)',
+        }}>
+          {isAdminArea ? (
+            <>
+              <Link 
+                href="/manage" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`nav-link ${pathname === '/manage' ? 'active' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+              >
+                <LayoutDashboard size={18} />
+                <span>การจองทั้งหมด</span>
+              </Link>
+              {['admin', 'subadmin'].includes(role) && (
+                <Link 
+                  href="/manage/rooms" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`nav-link ${pathname === '/manage/rooms' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+                >
+                  <ListPlus size={18} />
+                  <span>จัดการห้องประชุม</span>
+                </Link>
+              )}
+              {role === 'admin' && (
+                <Link 
+                  href="/manage/users" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+                >
+                  <Users size={18} />
+                  <span>จัดการผู้ใช้งาน</span>
+                </Link>
+              )}
+              {['admin', 'subadmin'].includes(role) && (
+                <Link 
+                  href="/manage/settings" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`nav-link ${pathname === '/manage/settings' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+                >
+                  <Shield size={18} />
+                  <span>ตั้งค่าระบบ</span>
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Link 
+                href="/dashboard" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+              >
+                <Calendar size={18} />
+                <span>จองห้องประชุม</span>
+              </Link>
+              <Link 
+                href="/dashboard/my-bookings" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`nav-link ${pathname === '/dashboard/my-bookings' ? 'active' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+              >
+                <LayoutDashboard size={18} />
+                <span>การจองของฉัน</span>
+              </Link>
+            </>
+          )}
+          <Link 
+            href="/profile" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`nav-link ${pathname === '/profile' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}
+          >
+            <User size={18} />
+            <span>โปรไฟล์</span>
+          </Link>
+          
+          {/* User Info and Logout inside Mobile Drawer */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderTop: '1px solid var(--border-color)', marginTop: '4px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(255, 182, 193, 0.25)',
+              border: '2px solid var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              color: 'var(--primary)',
+              fontSize: '1rem',
+              fontWeight: 700,
+              flexShrink: 0,
+            }}>
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt="Avatar" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+              ) : (
+                <span>{displayName.charAt(0).toUpperCase()}</span>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
+                {displayName}
+              </div>
+              {renderBadge()}
+            </div>
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleLogout();
+              }} 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <LogOut size={12} />
+              <span>ออก</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Real-time In-App Notification Toast */}
       {toast && (
@@ -724,6 +882,19 @@ export default function Navbar({ userName, role }: NavbarProps) {
             width: 350px !important;
             right: 24px !important;
             bottom: 24px !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .mobile-menu-toggle {
+            display: flex !important;
+          }
+          .nav-user {
+            display: none !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .mobile-drawer {
+            display: none !important;
           }
         }
         @keyframes slideInNoti {
