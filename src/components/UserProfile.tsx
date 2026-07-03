@@ -33,8 +33,10 @@ export default function UserProfile() {
   // Notification settings fields
   const [pushPermission, setPushPermission] = useState<string>('default')
   const [soundType, setSoundType] = useState('bell')
+  const [reminderSoundType, setReminderSoundType] = useState('chime')
   const [soundVolume, setSoundVolume] = useState(0.5)
   const [showPopup, setShowPopup] = useState(true)
+  const [notiVibrate, setNotiVibrate] = useState(true)
 
   // State Management
   const [loading, setLoading] = useState(true)
@@ -95,8 +97,10 @@ export default function UserProfile() {
     // Read local storage settings
     if (typeof window !== 'undefined') {
       setSoundType(localStorage.getItem('noti_sound_type') || 'bell')
+      setReminderSoundType(localStorage.getItem('reminder_sound_type') || 'chime')
       setSoundVolume(parseFloat(localStorage.getItem('noti_sound_volume') || '0.5'))
       setShowPopup(localStorage.getItem('noti_show_popup') !== 'false')
+      setNotiVibrate(localStorage.getItem('noti_vibrate') !== 'false')
     }
   }, [])
 
@@ -276,15 +280,40 @@ export default function UserProfile() {
     }
   }
 
-  const handleSaveNotiSettings = (newSound: string, newVolume: number, newPopup: boolean) => {
+  const handleSaveNotiSettings = (
+    newSound: string, 
+    newReminderSound: string, 
+    newVolume: number, 
+    newPopup: boolean,
+    newVibrate: boolean
+  ) => {
     localStorage.setItem('noti_sound_type', newSound)
+    localStorage.setItem('reminder_sound_type', newReminderSound)
     localStorage.setItem('noti_sound_volume', newVolume.toString())
     localStorage.setItem('noti_show_popup', newPopup.toString())
+    localStorage.setItem('noti_vibrate', newVibrate.toString())
     
-    // Play test audio at this specific volume immediately
-    playNotificationSound(newSound, newVolume)
+    // Save to IndexedDB for service worker access
+    if (typeof window !== 'undefined' && 'indexedDB' in window) {
+      try {
+        const req = indexedDB.open('NotiSettings', 1);
+        req.onupgradeneeded = (e: any) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('settings')) {
+            db.createObjectStore('settings');
+          }
+        };
+        req.onsuccess = (e: any) => {
+          const db = e.target.result;
+          const tx = db.transaction('settings', 'readwrite');
+          tx.objectStore('settings').put(newVibrate, 'noti_vibrate');
+        };
+      } catch (err) {
+        console.error('IndexedDB save failed:', err);
+      }
+    }
 
-    setNotiSuccess('บันทึกและจำลองเสียงแจ้งเตือนแล้ว!')
+    setNotiSuccess('บันทึกการตั้งค่าการแจ้งเตือนแล้ว!')
     setTimeout(() => setNotiSuccess(null), 3000)
   }
 
@@ -524,7 +553,7 @@ export default function UserProfile() {
             {/* Sound Style selection dropdown */}
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>รูปแบบเสียงแจ้งเตือน (Ringtone)</span>
+                <span>เสียงแจ้งเตือนทั่วไป / บุ๊คกิ้งใหม่ (Ringtone)</span>
                 <button 
                   type="button" 
                   onClick={() => playNotificationSound(soundType, soundVolume)}
@@ -538,7 +567,41 @@ export default function UserProfile() {
                 value={soundType}
                 onChange={(e) => {
                   setSoundType(e.target.value)
-                  handleSaveNotiSettings(e.target.value, soundVolume, showPopup)
+                  handleSaveNotiSettings(e.target.value, reminderSoundType, soundVolume, showPopup, notiVibrate)
+                  playNotificationSound(e.target.value, soundVolume)
+                }}
+                style={{ appearance: 'auto' }}
+              >
+                <option value="bell">เสียงกริ่งสดใส (Bright Bell)</option>
+                <option value="chime">เสียงระฆังคู่ (Double Chime)</option>
+                <option value="beep">เสียงดิจิตอลสั้น (Digital Beep)</option>
+                <option value="siren">เสียงเตือนภัยเลื่อนถี่ (Siren Pulse)</option>
+                <option value="melody">เสียงทำนองโรงแรมประสาน (Melody 2.2 วินาที)</option>
+                <option value="long-bell">เสียงระฆังกังวานกึกก้อง (Long Bell 2.5 วินาที)</option>
+                <option value="alarm-long">เสียงสัญญาณเตือนภัยยาว (Alarm 2.6 วินาที)</option>
+                <option value="sparkle">เสียงประกายซินธิไซเซอร์ (Sparkle 2.0 วินาที)</option>
+              </select>
+            </div>
+
+            {/* Pre-meeting sound selection dropdown */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>เสียงแจ้งเตือนก่อนเริ่มประชุม (Pre-Meeting Sound)</span>
+                <button 
+                  type="button" 
+                  onClick={() => playNotificationSound(reminderSoundType, soundVolume)}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  🔊 ทดลองฟัง
+                </button>
+              </label>
+              <select 
+                className="form-input" 
+                value={reminderSoundType}
+                onChange={(e) => {
+                  setReminderSoundType(e.target.value)
+                  handleSaveNotiSettings(soundType, e.target.value, soundVolume, showPopup, notiVibrate)
+                  playNotificationSound(e.target.value, soundVolume)
                 }}
                 style={{ appearance: 'auto' }}
               >
@@ -571,10 +634,12 @@ export default function UserProfile() {
                   setSoundVolume(parseFloat(e.target.value))
                 }}
                 onMouseUp={() => {
-                  handleSaveNotiSettings(soundType, soundVolume, showPopup)
+                  handleSaveNotiSettings(soundType, reminderSoundType, soundVolume, showPopup, notiVibrate)
+                  playNotificationSound(soundType, soundVolume)
                 }}
                 onTouchEnd={() => {
-                  handleSaveNotiSettings(soundType, soundVolume, showPopup)
+                  handleSaveNotiSettings(soundType, reminderSoundType, soundVolume, showPopup, notiVibrate)
+                  playNotificationSound(soundType, soundVolume)
                 }}
                 style={{
                   width: '100%',
@@ -593,12 +658,33 @@ export default function UserProfile() {
                 onChange={(e) => {
                   const val = e.target.value === 'true'
                   setShowPopup(val)
-                  handleSaveNotiSettings(soundType, soundVolume, val)
+                  handleSaveNotiSettings(soundType, reminderSoundType, soundVolume, val, notiVibrate)
                 }}
                 style={{ appearance: 'auto' }}
               >
                 <option value="true">เปิด (แนะนำ)</option>
                 <option value="false">ปิด</option>
+              </select>
+            </div>
+
+            {/* Vibration toggle */}
+            <div className="form-group">
+              <label className="form-label">ระบบสั่นเตือนบนอุปกรณ์มือถือ (Vibration Alert)</label>
+              <select 
+                className="form-input" 
+                value={notiVibrate ? 'true' : 'false'}
+                onChange={(e) => {
+                  const val = e.target.value === 'true'
+                  setNotiVibrate(val)
+                  handleSaveNotiSettings(soundType, reminderSoundType, soundVolume, showPopup, val)
+                  if (val && 'vibrate' in navigator) {
+                    navigator.vibrate([200, 100, 200])
+                  }
+                }}
+                style={{ appearance: 'auto' }}
+              >
+                <option value="true">เปิดระบบสั่น (แนะนำ)</option>
+                <option value="false">ปิดระบบสั่น</option>
               </select>
             </div>
 

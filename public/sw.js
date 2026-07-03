@@ -8,6 +8,35 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Helper to read vibration setting from IndexedDB (PWA offline storage)
+function getVibrateSetting() {
+  return new Promise((resolve) => {
+    if (!('indexedDB' in self)) {
+      resolve(true); // Default to enabled
+      return;
+    }
+    try {
+      const request = indexedDB.open('NotiSettings', 1);
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('settings')) {
+          resolve(true);
+          return;
+        }
+        const tx = db.transaction('settings', 'readonly');
+        const getRequest = tx.objectStore('settings').get('noti_vibrate');
+        getRequest.onsuccess = () => {
+          resolve(getRequest.result !== false); // Default to true if not explicitly false
+        };
+        getRequest.onerror = () => resolve(true);
+      };
+      request.onerror = () => resolve(true);
+    } catch (err) {
+      resolve(true);
+    }
+  });
+}
+
 // Handle push notification events from server/background (Full features: Banner, Sound, Vibration, Actions)
 self.addEventListener('push', (event) => {
   let data = { title: 'BOOKING PWK-ROOM', body: 'คุณมีการแจ้งเตือนใหม่ในระบบ' };
@@ -20,26 +49,28 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const options = {
-    body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    vibrate: [200, 100, 200, 100, 200], // Premium vibration pattern (vibrate-pause-vibrate)
-    tag: 'booking-alert',
-    renotify: true,
-    actions: [
-      {
-        action: 'open-app',
-        title: '👉 ดูรายละเอียด'
-      }
-    ],
-    data: {
-      url: data.url || '/dashboard'
-    }
-  };
-
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    getVibrateSetting().then((vibrateEnabled) => {
+      const options = {
+        body: data.body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        vibrate: vibrateEnabled ? [200, 100, 200, 100, 200] : undefined, // Premium vibration pattern if enabled
+        tag: 'booking-alert',
+        renotify: true,
+        actions: [
+          {
+            action: 'open-app',
+            title: '👉 ดูรายละเอียด'
+          }
+        ],
+        data: {
+          url: data.url || '/dashboard'
+        }
+      };
+
+      return self.registration.showNotification(data.title, options);
+    })
   );
 });
 

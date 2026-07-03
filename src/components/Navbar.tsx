@@ -14,6 +14,7 @@ import {
   markNotificationAsRead, 
   markAllNotificationsAsRead 
 } from '@/app/actions/notifications'
+import { savePushSubscription } from '@/app/actions/push'
 
 interface NavbarProps {
   userName: string
@@ -58,8 +59,43 @@ export default function Navbar({ userName, role }: NavbarProps) {
         }
 
         // 3. Request background notification permission (silent request if not set)
-        if ('Notification' in window && Notification.permission === 'default') {
-          // Only request if they interact or if we can (we check in Settings but good to have)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+              const reg = await navigator.serviceWorker.ready
+              const PUBLIC_VAPID_KEY = 'BCZY4R7Mpz3u_LQ39j-Mfm0J9-RFvZ9-rRjeQWuEVKcXd-4fxCq2l485VsWc51rVqoE-mHxCvlMu0O7YejpfSz0'
+              const padding = '='.repeat((4 - PUBLIC_VAPID_KEY.length % 4) % 4)
+              const base64 = (PUBLIC_VAPID_KEY + padding).replace(/\-/g, '+').replace(/_/g, '/')
+              const rawData = window.atob(base64)
+              const outputArray = new Uint8Array(rawData.length)
+              for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i)
+              }
+
+              let sub = await reg.pushManager.getSubscription()
+              if (!sub) {
+                sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: outputArray
+                })
+              }
+
+              if (sub) {
+                const subJson = sub.toJSON()
+                if (subJson.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
+                  await savePushSubscription({
+                    endpoint: subJson.endpoint,
+                    keys: {
+                      p256dh: subJson.keys.p256dh,
+                      auth: subJson.keys.auth
+                    }
+                  })
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Auto push subscription failed:', err)
+          }
         }
       }
     }
@@ -99,41 +135,47 @@ export default function Navbar({ userName, role }: NavbarProps) {
             setNotifications(prev => [newNoti, ...prev])
             setUnreadCount(prev => prev + 1)
 
-            // Get local audio & visual configurations
-            const soundType = localStorage.getItem('noti_sound_type') || 'bell'
-            const soundVolume = parseFloat(localStorage.getItem('noti_sound_volume') || '0.5')
-            const showPopup = localStorage.getItem('noti_show_popup') !== 'false'
+             // Get local audio & visual configurations
+             const soundType = localStorage.getItem('noti_sound_type') || 'bell'
+             const soundVolume = parseFloat(localStorage.getItem('noti_sound_volume') || '0.5')
+             const showPopup = localStorage.getItem('noti_show_popup') !== 'false'
+             const vibrateEnabled = localStorage.getItem('noti_vibrate') !== 'false'
+ 
+             // Play synthesized ringtone
+             playNotificationSound(soundType, soundVolume)
 
-            // Play synthesized ringtone
-            playNotificationSound(soundType, soundVolume)
-
-            // Trigger sliding Toast Popup
-            if (showPopup) {
-              setToast({ title: newNoti.title, content: newNoti.content })
-              // Auto dismiss after 6 seconds
-              setTimeout(() => {
-                setToast(null)
-              }, 6000)
-            }
-
-            // System Banner Notification (Works foreground/background on phone PWA and desktop)
-            if ('Notification' in window && Notification.permission === 'granted') {
-              try {
-                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                  navigator.serviceWorker.ready.then(reg => {
-                    reg.showNotification(newNoti.title, {
-                      body: newNoti.content,
-                      icon: '/icons/icon-192x192.png',
-                      badge: '/icons/icon-192x192.png',
-                      vibrate: [200, 100, 200, 100, 200],
-                      tag: 'booking-alert',
-                      renotify: true,
-                      actions: [
-                        { action: 'open-app', title: '👉 ดูรายละเอียด' }
-                      ],
-                      data: { url: '/dashboard' }
-                    } as any)
-                  })
+             // Vibrate device if enabled
+             if (vibrateEnabled && 'vibrate' in navigator) {
+               navigator.vibrate([200, 100, 200])
+             }
+ 
+             // Trigger sliding Toast Popup
+             if (showPopup) {
+               setToast({ title: newNoti.title, content: newNoti.content })
+               // Auto dismiss after 6 seconds
+               setTimeout(() => {
+                 setToast(null)
+               }, 6000)
+             }
+ 
+             // System Banner Notification (Works foreground/background on phone PWA and desktop)
+             if ('Notification' in window && Notification.permission === 'granted') {
+               try {
+                 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                   navigator.serviceWorker.ready.then(reg => {
+                     reg.showNotification(newNoti.title, {
+                       body: newNoti.content,
+                       icon: '/icons/icon-192x192.png',
+                       badge: '/icons/icon-192x192.png',
+                       vibrate: vibrateEnabled ? [200, 100, 200, 100, 200] : undefined,
+                       tag: 'booking-alert',
+                       renotify: true,
+                       actions: [
+                         { action: 'open-app', title: '👉 ดูรายละเอียด' }
+                       ],
+                       data: { url: '/dashboard' }
+                     } as any)
+                   })
                 } else {
                   new Notification(newNoti.title, {
                     body: newNoti.content,
@@ -195,9 +237,10 @@ export default function Navbar({ userName, role }: NavbarProps) {
 
         if (!bookingsData || bookingsData.length === 0) return
 
-        const soundType = localStorage.getItem('noti_sound_type') || 'bell'
+        const soundType = localStorage.getItem('reminder_sound_type') || 'chime'
         const soundVolume = parseFloat(localStorage.getItem('noti_sound_volume') || '0.5')
         const showPopup = localStorage.getItem('noti_show_popup') !== 'false'
+        const vibrateEnabled = localStorage.getItem('noti_vibrate') !== 'false'
 
         // Get already notified bookings to prevent duplicate alerts
         let notifiedList: string[] = []
@@ -233,6 +276,11 @@ export default function Navbar({ userName, role }: NavbarProps) {
             // 1. Play sound
             playNotificationSound(soundType, soundVolume)
 
+            // Vibrate if enabled
+            if (vibrateEnabled && 'vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200])
+            }
+
             // 2. Show in-app Toast
             if (showPopup) {
               setToast({ title, content })
@@ -247,7 +295,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
                       body: content,
                       icon: '/icons/icon-192x192.png',
                       badge: '/icons/icon-192x192.png',
-                      vibrate: [200, 100, 200],
+                      vibrate: vibrateEnabled ? [200, 100, 200] : undefined,
                       tag: `booking-reminder-${booking.id}`,
                       renotify: true,
                       data: { url: '/dashboard' }
