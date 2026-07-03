@@ -26,7 +26,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
       <div className="nav-container">
         <Link href={role === 'admin' ? '/admin' : '/dashboard'} className="nav-brand">
           <Calendar size={24} />
-          <span>BOOKING SPACE</span>
+          <span>BOOKING PWK-ROOM</span>
         </Link>
 
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>

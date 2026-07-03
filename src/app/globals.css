@@ -6,35 +6,35 @@
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Premium HSL Color Palette (Dark Theme Default) */
-  --bg-main: HSL(222, 47%, 4%);
-  --bg-card: rgba(13, 20, 35, 0.55);
-  --bg-card-hover: rgba(20, 30, 55, 0.65);
+  /* Premium HSL Color Palette (Cute Pastel Light Theme) */
+  --bg-main: HSL(330, 60%, 98%); /* Soft cotton candy pink base */
+  --bg-card: rgba(255, 255, 255, 0.75); /* semi-transparent white card */
+  --bg-card-hover: rgba(255, 255, 255, 0.88);
   
-  --primary: HSL(217, 91%, 60%);
-  --primary-hover: HSL(217, 91%, 65%);
-  --primary-glow: rgba(59, 130, 246, 0.45);
+  --primary: HSL(345, 90%, 72%); /* Bright cute bubblegum pink */
+  --primary-hover: HSL(345, 90%, 77%);
+  --primary-glow: rgba(255, 137, 164, 0.3);
   
-  --accent: HSL(270, 95%, 65%);
-  --accent-glow: rgba(168, 85, 247, 0.4);
+  --accent: HSL(198, 90%, 72%); /* Bright cute pastel sky blue */
+  --accent-glow: rgba(147, 197, 253, 0.3);
   
-  --success: HSL(142, 70%, 45%);
-  --success-glow: rgba(34, 197, 94, 0.2);
-  --warning: HSL(37, 90%, 50%);
-  --danger: HSL(350, 80%, 55%);
-  --danger-glow: rgba(239, 68, 68, 0.2);
+  --success: HSL(145, 75%, 45%); /* Soft bright green */
+  --success-glow: rgba(74, 222, 128, 0.25);
+  --warning: HSL(42, 95%, 60%); /* Soft warm honey orange */
+  --danger: HSL(355, 85%, 68%); /* Soft sweet strawberry red */
+  --danger-glow: rgba(248, 113, 113, 0.25);
 
-  --text-primary: HSL(210, 40%, 98%);
-  --text-secondary: HSL(215, 20%, 75%);
-  --text-muted: HSL(215, 15%, 55%);
+  --text-primary: HSL(222, 40%, 22%); /* Soft dark slate/navy for text readability */
+  --text-secondary: HSL(222, 20%, 42%);
+  --text-muted: HSL(222, 15%, 62%);
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(255, 255, 255, 0.18);
+  --border-color: rgba(255, 137, 164, 0.15); /* Soft pink border */
+  --border-active: rgba(255, 137, 164, 0.3);
   
   /* Glassmorphism details */
-  --glass-blur: blur(16px);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --border-glass: 1px solid rgba(255, 255, 255, 0.07);
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 8px 32px 0 rgba(255, 182, 193, 0.25);
+  --border-glass: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* Base Styles */
@@ -47,9 +47,10 @@
 body {
   background-color: var(--bg-main);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(13, 20, 35, 0.8) 0px, var(--bg-main) 100%);
+    radial-gradient(at 0% 0%, rgba(255, 182, 193, 0.45) 0px, transparent 50%),   /* Cute Pink */
+    radial-gradient(at 100% 0%, rgba(186, 225, 255, 0.45) 0px, transparent 50%), /* Cute Blue */
+    radial-gradient(at 100% 100%, rgba(255, 223, 186, 0.45) 0px, transparent 50%), /* Cute Peach */
+    radial-gradient(at 0% 100%, rgba(226, 240, 203, 0.45) 0px, transparent 50%);  /* Cute Mint */
   background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -108,7 +109,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .form-input {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   color: var(--text-primary);
@@ -160,13 +161,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 182, 193, 0.15);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 182, 193, 0.25);
   border-color: var(--border-active);
 }
 
@@ -192,7 +193,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Navbar */
 .navbar {
   border-bottom: var(--border-glass);
-  background: rgba(13, 20, 35, 0.65);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   position: sticky;

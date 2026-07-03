@@ -73,7 +73,7 @@ export default function LoginPage() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-            BOOKING SPACE
+            BOOKING PWK-ROOM
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             เข้าสู่ระบบจองห้องประชุมออนไลน์ของคุณ
