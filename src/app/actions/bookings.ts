@@ -114,11 +114,22 @@ export async function createBooking(formData: {
           .select('id')
           .in('role', targetRoles)
 
-        if (targetUsers) {
-          for (const targetUser of targetUsers) {
-            // Do not notify the booking creator themselves
-            if (targetUser.id !== user.id) {
-              await createNotification(targetUser.id, title, content)
+        if (targetUsers && targetUsers.length > 0) {
+          const notificationsToInsert = targetUsers
+            .filter(targetUser => targetUser.id !== user.id)
+            .map(targetUser => ({
+              user_id: targetUser.id,
+              title,
+              content,
+              is_read: false
+            }))
+
+          if (notificationsToInsert.length > 0) {
+            const { error: insertNotiError } = await supabase
+              .from('notifications')
+              .insert(notificationsToInsert)
+            if (insertNotiError) {
+              console.error('Bulk notification insert failed:', insertNotiError)
             }
           }
         }
@@ -188,7 +199,7 @@ export async function cancelBooking(bookingId: string) {
     return { error: 'ไม่สามารถยกเลิกรายการจองได้' }
   }
 
-  // Notify admins of cancellation
+  // Notify admins of cancellation in bulk
   if (bookingDetail) {
     const roomName = (bookingDetail.rooms as any)?.name || 'ห้องประชุม'
     const userName = (bookingDetail.profiles as any)?.full_name || 'ผู้ใช้'
@@ -201,9 +212,23 @@ export async function cancelBooking(bookingId: string) {
       .select('id')
       .in('role', ['admin', 'subadmin', 'admin booking'])
 
-    if (admins) {
-      for (const admin of admins) {
-        await createNotification(admin.id, title, content)
+    if (admins && admins.length > 0) {
+      const notificationsToInsert = admins
+        .filter(admin => admin.id !== user.id)
+        .map(admin => ({
+          user_id: admin.id,
+          title,
+          content,
+          is_read: false
+        }))
+
+      if (notificationsToInsert.length > 0) {
+        const { error: insertNotiError } = await supabase
+          .from('notifications')
+          .insert(notificationsToInsert)
+        if (insertNotiError) {
+          console.error('Bulk cancellation notification insert failed:', insertNotiError)
+        }
       }
     }
   }

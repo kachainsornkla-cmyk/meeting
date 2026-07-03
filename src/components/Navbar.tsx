@@ -116,13 +116,28 @@ export default function Navbar({ userName, role }: NavbarProps) {
               }, 6000)
             }
 
-            // System Background Notification (if window is hidden)
-            if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-              new Notification(newNoti.title, {
-                body: newNoti.content,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/icon-192x192.png'
-              })
+            // System Banner Notification (Works foreground/background on phone PWA and desktop)
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification(newNoti.title, {
+                      body: newNoti.content,
+                      icon: '/icons/icon-192x192.png',
+                      badge: '/icons/icon-192x192.png',
+                      vibrate: [100, 50, 100],
+                      data: { url: '/dashboard' }
+                    } as any)
+                  })
+                } else {
+                  new Notification(newNoti.title, {
+                    body: newNoti.content,
+                    icon: '/icons/icon-192x192.png'
+                  })
+                }
+              } catch (err) {
+                console.error('System notification error:', err)
+              }
             }
           }
         )
@@ -479,23 +494,26 @@ export default function Navbar({ userName, role }: NavbarProps) {
 
       {/* Real-time In-App Notification Toast */}
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          background: 'white',
-          border: '1px solid rgba(255, 182, 193, 0.4)',
-          borderLeft: '5px solid var(--primary)',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-          padding: '16px 20px',
-          zIndex: 9999,
-          maxWidth: '350px',
-          display: 'flex',
-          gap: '12px',
-          alignItems: 'flex-start',
-          animation: 'slideInNoti 0.3s ease-out'
-        }}>
+        <div 
+          className="noti-toast-container animate-fade-in"
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            left: '20px',
+            background: 'white',
+            border: '1px solid rgba(255, 182, 193, 0.4)',
+            borderLeft: '5px solid var(--primary)',
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+            padding: '16px 20px',
+            zIndex: 9999,
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-start',
+            animation: 'slideInNoti 0.3s ease-out'
+          }}
+        >
           <Bell size={20} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '2px' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '4px' }}>
@@ -514,7 +532,18 @@ export default function Navbar({ userName, role }: NavbarProps) {
         </div>
       )}
 
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
+        .noti-toast-container {
+          max-width: calc(100% - 40px);
+        }
+        @media (min-width: 576px) {
+          .noti-toast-container {
+            left: auto !important;
+            width: 350px !important;
+            right: 24px !important;
+            bottom: 24px !important;
+          }
+        }
         @keyframes slideInNoti {
           from {
             transform: translateX(120%);
@@ -525,7 +554,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
             opacity: 1;
           }
         }
-      `}</style>
+      ` }} />
     </nav>
   )
 }
