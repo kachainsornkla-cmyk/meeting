@@ -26,6 +26,28 @@ interface AdminDashboardProps {
   userRole?: string
 }
 
+// Predefined list of beautiful pastel room colors (background & border & text)
+const getRoomColors = (roomName: string) => {
+  const colors = [
+    { bg: 'rgba(255, 182, 193, 0.15)', text: 'HSL(345, 90%, 60%)', border: 'rgba(255, 182, 193, 0.35)' }, // Pastel Pink
+    { bg: 'rgba(173, 216, 230, 0.15)', text: 'HSL(195, 90%, 50%)', border: 'rgba(173, 216, 230, 0.35)' }, // Pastel Light Blue
+    { bg: 'rgba(152, 251, 152, 0.15)', text: 'HSL(120, 65%, 42%)', border: 'rgba(152, 251, 152, 0.35)' }, // Pastel Mint Green
+    { bg: 'rgba(238, 130, 238, 0.15)', text: 'HSL(300, 65%, 55%)', border: 'rgba(238, 130, 238, 0.35)' }, // Pastel Violet
+    { bg: 'rgba(255, 222, 173, 0.15)', text: 'HSL(35, 85%, 50%)', border: 'rgba(255, 222, 173, 0.35)' },  // Pastel Orange/Peach
+    { bg: 'rgba(127, 255, 212, 0.15)', text: 'HSL(160, 75%, 38%)', border: 'rgba(127, 255, 212, 0.35)' }, // Pastel Turquoise
+    { bg: 'rgba(219, 112, 147, 0.15)', text: 'HSL(340, 65%, 50%)', border: 'rgba(219, 112, 147, 0.35)' }, // Pastel Pale Red
+    { bg: 'rgba(240, 230, 140, 0.15)', text: 'HSL(54, 70%, 42%)', border: 'rgba(240, 230, 140, 0.35)' },  // Pastel Khaki/Yellow
+  ]
+  
+  // Basic hashing function to ensure consistent colors for each room name
+  let hash = 0
+  for (let i = 0; i < roomName.length; i++) {
+    hash = roomName.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const idx = Math.abs(hash) % colors.length
+  return colors[idx]
+}
+
 export default function AdminDashboard({ bookings, userRole }: AdminDashboardProps) {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [filter, setFilter] = useState<string>('all')
@@ -594,26 +616,48 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
                     )}
                   </div>
 
-                  {/* Summary Event Pills */}
+                  {/* Summary Event Pills with distinct Room colors & status dots */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, overflow: 'hidden' }}>
-                    {dayBookings.slice(0, 2).map((b) => (
-                      <div 
-                        key={b.id} 
-                        style={{
-                          fontSize: '0.65rem',
-                          padding: '3px 4px',
-                          borderRadius: '4px',
-                          background: b.status === 'approved' ? 'rgba(34, 197, 94, 0.08)' : b.status === 'pending' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(0,0,0,0.03)',
-                          borderLeft: b.status === 'approved' ? '3px solid var(--success)' : b.status === 'pending' ? '3px solid var(--warning)' : '3px solid var(--text-muted)',
-                          color: b.status === 'approved' ? 'var(--success)' : b.status === 'pending' ? 'var(--warning)' : 'var(--text-secondary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                      >
-                        {formatTime(b.start_time)} {b.roomName}
-                      </div>
-                    ))}
+                    {dayBookings.slice(0, 2).map((b) => {
+                      const roomColors = getRoomColors(b.roomName)
+                      const statusDotColor = b.status === 'approved' 
+                        ? '#22c55e' 
+                        : b.status === 'pending' 
+                          ? '#f59e0b' 
+                          : '#ef4444'
+
+                      return (
+                        <div 
+                          key={b.id} 
+                          style={{
+                            fontSize: '0.65rem',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            background: roomColors.bg,
+                            border: `1px solid ${roomColors.border}`,
+                            color: roomColors.text,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title={`${b.roomName} (${formatTime(b.start_time)} - ${formatTime(b.end_time)}): ${b.purpose}`}
+                        >
+                          <span style={{ 
+                            width: '5px', 
+                            height: '5px', 
+                            borderRadius: '50%', 
+                            background: statusDotColor,
+                            flexShrink: 0
+                          }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {formatTime(b.start_time)}-{formatTime(b.end_time)} {b.roomName}
+                          </span>
+                        </div>
+                      )
+                    })}
                     {dayBookings.length > 2 && (
                       <div style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 600, textAlign: 'right' }}>
                         + อีก {dayBookings.length - 2} รายการ
@@ -733,57 +777,68 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {selectedDayBookings.items.map((b) => (
-                  <div key={b.id} style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.01)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>🏢 {b.roomName}</h4>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>{b.roomLocation}</div>
+                {selectedDayBookings.items.map((b) => {
+                  const roomColors = getRoomColors(b.roomName)
+                  return (
+                    <div 
+                      key={b.id} 
+                      style={{ 
+                        padding: '16px', 
+                        borderRadius: '8px', 
+                        border: `1px solid ${roomColors.border}`, 
+                        background: roomColors.bg 
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: roomColors.text }}>🏢 {b.roomName}</h4>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{b.roomLocation}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {getStatusBadge(b.status)}
+                          
+                          {b.status === 'pending' && userRole !== 'Housekeeper' && (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                onClick={() => handleApprove(b.id)}
+                                disabled={loadingId !== null}
+                                className="btn btn-primary"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <Check size={12} />
+                                <span>อนุมัติ</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setRejectingId(b.id)
+                                  setRejectionReason('')
+                                }}
+                                disabled={loadingId !== null}
+                                className="btn btn-danger"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <X size={12} />
+                                <span>ปฏิเสธ</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {getStatusBadge(b.status)}
-                        
-                        {b.status === 'pending' && userRole !== 'Housekeeper' && (
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button
-                              onClick={() => handleApprove(b.id)}
-                              disabled={loadingId !== null}
-                              className="btn btn-primary"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              <Check size={12} />
-                              <span>อนุมัติ</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setRejectingId(b.id)
-                                setRejectionReason('')
-                              }}
-                              disabled={loadingId !== null}
-                              className="btn btn-danger"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              <X size={12} />
-                              <span>ปฏิเสธ</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'white', padding: '10px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                      <div>🕒 <strong>เวลา:</strong> {formatTime(b.start_time)} - {formatTime(b.end_time)} น.</div>
-                      <div>👤 <strong>ผู้จอง:</strong> {b.userFullName}</div>
-                      <div style={{ gridColumn: 'span 2' }}>📝 <strong>วัตถุประสงค์:</strong> {b.purpose}</div>
-                    </div>
-
-                    {b.status === 'rejected' && b.rejection_reason && (
-                      <div style={{ marginTop: '8px', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', color: 'var(--danger)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem' }}>
-                        <strong>เหตุผลการปฏิเสธ:</strong> {b.rejection_reason}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.65)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div>🕒 <strong>เวลา:</strong> {formatTime(b.start_time)} - {formatTime(b.end_time)} น.</div>
+                        <div>👤 <strong>ผู้จอง:</strong> {b.userFullName}</div>
+                        <div style={{ gridColumn: 'span 2' }}>📝 <strong>วัตถุประสงค์:</strong> {b.purpose}</div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {b.status === 'rejected' && b.rejection_reason && (
+                        <div style={{ marginTop: '8px', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', color: 'var(--danger)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                          <strong>เหตุผลการปฏิเสธ:</strong> {b.rejection_reason}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
