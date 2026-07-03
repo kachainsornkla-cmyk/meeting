@@ -158,6 +158,135 @@ export default function Navbar({ userName, role }: NavbarProps) {
     }
   }, [])
 
+  // Pre-meeting reminder engine (Checks for upcoming meetings and alerts)
+  useEffect(() => {
+    let reminderInterval: NodeJS.Timeout | null = null
+
+    async function setupReminderEngine() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 1. Fetch system reminder setting (reminder_before_minutes)
+      let reminderMins = 15
+      const { data: settingData } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'reminder_before_minutes')
+        .single()
+      if (settingData?.value !== undefined) {
+        reminderMins = Number(settingData.value)
+      }
+
+      // If pre-meeting warning is disabled (0), don't start the engine
+      if (reminderMins <= 0) return
+
+      // 2. Load upcoming approved bookings
+      const checkAndRemind = async () => {
+        const now = new Date()
+        const oneHourAgo = new Date(now.getTime() - 3600000)
+
+        // Fetch bookings starting from 1 hour ago (to handle ongoing or very near bookings)
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('id, start_time, rooms ( name )')
+          .eq('user_id', user.id)
+          .eq('status', 'approved')
+          .gte('start_time', oneHourAgo.toISOString())
+
+        if (!bookingsData || bookingsData.length === 0) return
+
+        const soundType = localStorage.getItem('noti_sound_type') || 'bell'
+        const soundVolume = parseFloat(localStorage.getItem('noti_sound_volume') || '0.5')
+        const showPopup = localStorage.getItem('noti_show_popup') !== 'false'
+
+        // Get already notified bookings to prevent duplicate alerts
+        let notifiedList: string[] = []
+        try {
+          const stored = localStorage.getItem('notified_bookings')
+          if (stored) {
+            notifiedList = JSON.parse(stored)
+          }
+        } catch (e) {
+          console.error('Failed to parse notified_bookings:', e)
+        }
+
+        let updatedNotified = [...notifiedList]
+        let hasNewNotification = false
+
+        for (const booking of bookingsData) {
+          if (notifiedList.includes(booking.id)) continue
+
+          const startTime = new Date(booking.start_time)
+          const diffMs = startTime.getTime() - now.getTime()
+          const diffMins = Math.floor(diffMs / 60000)
+
+          // If the booking is in the future and starts within the reminder window
+          if (diffMins >= 0 && diffMins <= reminderMins) {
+            hasNewNotification = true
+            updatedNotified.push(booking.id)
+
+            const roomName = (booking.rooms as any)?.name || 'ห้องประชุม'
+            const formattedTime = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false })
+            const title = 'ห้องประชุมของคุณกำลังจะเริ่ม'
+            const content = `ห้อง ${roomName} จะเริ่มประชุมในอีก ${diffMins} นาที (${formattedTime} น.)`
+
+            // 1. Play sound
+            playNotificationSound(soundType, soundVolume)
+
+            // 2. Show in-app Toast
+            if (showPopup) {
+              setToast({ title, content })
+            }
+
+            // 3. Show System PWA banner notification if permissions granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification(title, {
+                      body: content,
+                      icon: '/icons/icon-192x192.png',
+                      badge: '/icons/icon-192x192.png',
+                      vibrate: [200, 100, 200],
+                      tag: `booking-reminder-${booking.id}`,
+                      renotify: true,
+                      data: { url: '/dashboard' }
+                    } as any)
+                  })
+                } else {
+                  new Notification(title, {
+                    body: content,
+                    icon: '/icons/icon-192x192.png'
+                  })
+                }
+              } catch (err) {
+                console.error('System reminder notification error:', err)
+              }
+            }
+          }
+        }
+
+        if (hasNewNotification) {
+          localStorage.setItem('notified_bookings', JSON.stringify(updatedNotified))
+        }
+      }
+
+      // Run immediately on setup
+      checkAndRemind()
+
+      // Then check every 30 seconds
+      reminderInterval = setInterval(checkAndRemind, 30000)
+    }
+
+    setupReminderEngine()
+
+    return () => {
+      if (reminderInterval) {
+        clearInterval(reminderInterval)
+      }
+    }
+  }, [])
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')

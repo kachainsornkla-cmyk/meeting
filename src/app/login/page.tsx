@@ -42,7 +42,8 @@ export default function LoginPage() {
       }
 
       const role = profile?.role || 'user'
-      router.push(role === 'admin' ? '/admin' : '/dashboard')
+      const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+      router.push(allowedAdminRoles.includes(role) ? '/manage' : '/dashboard')
       router.refresh()
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ')

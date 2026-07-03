@@ -91,8 +91,8 @@ export async function createBooking(formData: {
     if (userProfile && roomData) {
       const userName = userProfile.full_name || 'ผู้ใช้'
       const roomName = roomData.name || 'ห้องประชุม'
-      const dateStr = start.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
-      const timeStr = `${start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}-${end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`
+      const dateStr = start.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok' })
+      const timeStr = `${start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' })}-${end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' })}`
       
       const title = 'คำขอจองห้องประชุมใหม่'
       const content = `${userName} ได้ขอจองห้อง ${roomName} ในวันที่ ${dateStr} เวลา ${timeStr} น. (รอการอนุมัติ)`
@@ -211,7 +211,7 @@ export async function cancelBooking(bookingId: string) {
   if (bookingDetail) {
     const roomName = (bookingDetail.rooms as any)?.name || 'ห้องประชุม'
     const userName = (bookingDetail.profiles as any)?.full_name || 'ผู้ใช้'
-    const dateStr = new Date(bookingDetail.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+    const dateStr = new Date(bookingDetail.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok' })
     const title = 'ยกเลิกการจองห้องประชุม'
     const content = `${userName} ได้กดยกเลิกการจองห้อง ${roomName} วันที่ ${dateStr} แล้ว`
 
@@ -304,7 +304,7 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
   // Notify the booking owner of approval or rejection
   if (bookingData) {
     const roomName = (bookingData.rooms as any)?.name || 'ห้องประชุม'
-    const dateStr = new Date(bookingData.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+    const dateStr = new Date(bookingData.start_time).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok' })
     const title = status === 'approved' ? 'อนุมัติการจองห้องประชุมแล้ว' : 'ปฏิเสธการจองห้องประชุม'
     const content = status === 'approved'
       ? `คำขอจองห้อง ${roomName} ในวันที่ ${dateStr} ของคุณได้รับการอนุมัติแล้ว`

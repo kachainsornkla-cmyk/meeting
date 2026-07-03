@@ -72,6 +72,49 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
 
   const busyBookings = getBusyTimesForSelected()
 
+  // Generate 24-hour time options in 15-minute intervals
+  const timeOptions = Array.from({ length: 96 }, (_, i) => {
+    const hour = Math.floor(i / 4);
+    const minute = (i % 4) * 15;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  });
+
+  const getEndTimeOptions = () => {
+    const [startH, startM] = startTime.split(':').map(Number);
+    const startTotal = startH * 60 + startM;
+
+    const filtered = timeOptions.filter(t => {
+      const [h, m] = t.split(':').map(Number);
+      const total = h * 60 + m;
+      return total > startTotal;
+    });
+
+    if (filtered.length === 0 || !filtered.includes('23:59')) {
+      filtered.push('23:59');
+    }
+    return filtered;
+  };
+
+  const handleStartTimeChange = (newStart: string) => {
+    setStartTime(newStart);
+    
+    const [startH, startM] = newStart.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    
+    const startTotal = startH * 60 + startM;
+    const endTotal = endH * 60 + endM;
+    
+    if (endTotal <= startTotal) {
+      let newEndH = startH + 1;
+      let newEndM = startM;
+      if (newEndH >= 24) {
+        setEndTime('23:59');
+      } else {
+        setEndTime(`${newEndH.toString().padStart(2, '0')}:${newEndM.toString().padStart(2, '0')}`);
+      }
+    }
+  };
+
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedRoom) return
@@ -80,13 +123,19 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
     setErrorMsg(null)
     setSuccessMsg(null)
 
-    const startDateTime = `${bookingDate}T${startTime}:00`
-    const endDateTime = `${bookingDate}T${endTime}:00`
+    const start = new Date(`${bookingDate}T${startTime}:00`)
+    const end = new Date(`${bookingDate}T${endTime}:00`)
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      setErrorMsg('กรุณากรอกวันที่และเวลาให้ถูกต้อง')
+      setSubmitting(false)
+      return
+    }
 
     const result = await createBooking({
       roomId: selectedRoom.id,
-      startTime: startDateTime,
-      endTime: endDateTime,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
       purpose,
     })
 
@@ -106,7 +155,7 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
 
   const formatTime = (isoString: string) => {
     const d = new Date(isoString)
-    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
   return (
@@ -344,23 +393,35 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">เริ่มเวลา</label>
-                    <input
-                      type="time"
+                    <select
                       className="form-input"
                       value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      style={{ appearance: 'auto', background: 'white' }}
                       required
-                    />
+                    >
+                      {timeOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t} น.
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">สิ้นสุดเวลา</label>
-                    <input
-                      type="time"
+                    <select
                       className="form-input"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
+                      style={{ appearance: 'auto', background: 'white' }}
                       required
-                    />
+                    >
+                      {getEndTimeOptions().map((t) => (
+                        <option key={t} value={t}>
+                          {t} น.
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

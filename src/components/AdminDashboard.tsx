@@ -209,7 +209,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
 
   const formatTime = (isoString: string) => {
     const d = new Date(isoString)
-    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
   return (
