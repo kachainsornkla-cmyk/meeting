@@ -26,7 +26,7 @@ export default async function AdminRoomsPage() {
   }
 
   if (!['admin', 'subadmin'].includes(profile.role)) {
-    redirect('/admin')
+    redirect('/manage')
   }
 
   // Fetch all rooms (both active & inactive)

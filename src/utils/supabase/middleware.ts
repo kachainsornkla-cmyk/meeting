@@ -53,25 +53,25 @@ export async function updateSession(request: NextRequest) {
     const role = profile?.role || 'user'
     const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
 
-    // Block non-admins from /admin
-    if (path.startsWith('/admin')) {
+    // Block non-admins from /manage
+    if (path.startsWith('/manage')) {
       if (!allowedAdminRoles.includes(role)) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)
       }
 
-      // /admin/users is restricted to super admin only
-      if (path.startsWith('/admin/users') && role !== 'admin') {
+      // /manage/users is restricted to super admin only
+      if (path.startsWith('/manage/users') && role !== 'admin') {
         const url = request.nextUrl.clone()
-        url.pathname = '/admin'
+        url.pathname = '/manage'
         return NextResponse.redirect(url)
       }
 
-      // /admin/rooms is restricted to admin and subadmin only
-      if (path.startsWith('/admin/rooms') && !['admin', 'subadmin'].includes(role)) {
+      // /manage/rooms is restricted to admin and subadmin only
+      if (path.startsWith('/manage/rooms') && !['admin', 'subadmin'].includes(role)) {
         const url = request.nextUrl.clone()
-        url.pathname = '/admin'
+        url.pathname = '/manage'
         return NextResponse.redirect(url)
       }
     }
@@ -79,14 +79,14 @@ export async function updateSession(request: NextRequest) {
     // Redirect administrative roles away from user dashboard to admin panel for better UX
     if (path.startsWith('/dashboard') && allowedAdminRoles.includes(role)) {
       const url = request.nextUrl.clone()
-      url.pathname = '/admin'
+      url.pathname = '/manage'
       return NextResponse.redirect(url)
     }
 
     // Redirect logged in users away from auth pages
     if (path === '/' || path === '/login' || path === '/register') {
       const url = request.nextUrl.clone()
-      url.pathname = allowedAdminRoles.includes(role) ? '/admin' : '/dashboard'
+      url.pathname = allowedAdminRoles.includes(role) ? '/manage' : '/dashboard'
       return NextResponse.redirect(url)
     }
   }

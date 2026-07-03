@@ -26,7 +26,7 @@ export default async function AdminUsersPage() {
   }
 
   if (profile.role !== 'admin') {
-    redirect('/admin') // Only super admins can manage users
+    redirect('/manage') // Only super admins can manage users
   }
 
   // Fetch all profiles

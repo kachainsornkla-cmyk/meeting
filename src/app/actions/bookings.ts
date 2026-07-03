@@ -124,7 +124,7 @@ export async function cancelBooking(bookingId: string) {
 export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected', rejectionReason?: string) {
   const supabase = await createClient()
 
-  // Verify user is admin
+  // Verify user is admin, subadmin, or admin booking
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) {
     return { error: 'ไม่ได้รับอนุญาตในการทำรายการ' }
@@ -136,8 +136,9 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
-    return { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ทำรายการนี้' }
+  const allowedRoles = ['admin', 'subadmin', 'admin booking']
+  if (!allowedRoles.includes(profile?.role || '')) {
+    return { error: 'คุณไม่มีสิทธิ์ในการอนุมัติหรือปฏิเสธคำขอจองห้องประชุม' }
   }
 
   // Update status
@@ -155,7 +156,7 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
     return { error: 'ไม่สามารถเปลี่ยนสถานะรายการจองได้' }
   }
 
-  revalidatePath('/admin')
+  revalidatePath('/manage')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/my-bookings')
   return { success: true }

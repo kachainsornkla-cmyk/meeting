@@ -47,7 +47,7 @@ export async function addRoom(formData: {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/rooms')
+    revalidatePath('/manage/rooms')
     revalidatePath('/dashboard')
     return { success: true }
   } catch (err: any) {
@@ -83,7 +83,7 @@ export async function editRoom(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/rooms')
+    revalidatePath('/manage/rooms')
     revalidatePath('/dashboard')
     return { success: true }
   } catch (err: any) {
@@ -102,7 +102,7 @@ export async function deleteRoom(id: string) {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/rooms')
+    revalidatePath('/manage/rooms')
     revalidatePath('/dashboard')
     return { success: true }
   } catch (err: any) {

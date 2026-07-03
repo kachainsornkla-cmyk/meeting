@@ -60,7 +60,7 @@ export async function updateUserRoleAndProfile(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/users')
+    revalidatePath('/manage/users')
     return { success: true }
   } catch (err: any) {
     return { error: err.message || 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลสมาชิก' }

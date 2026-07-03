@@ -104,7 +104,7 @@ export default function Navbar({ userName, role }: NavbarProps) {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link href={isAdminArea ? '/admin' : '/dashboard'} className="nav-brand">
+        <Link href={isAdminArea ? '/manage' : '/dashboard'} className="nav-brand">
           <Calendar size={24} />
           <span>BOOKING PWK-ROOM</span>
         </Link>
@@ -114,8 +114,8 @@ export default function Navbar({ userName, role }: NavbarProps) {
             {isAdminArea ? (
               <>
                 <Link 
-                  href="/admin" 
-                  className={`nav-link ${pathname === '/admin' ? 'active' : ''}`}
+                  href="/manage" 
+                  className={`nav-link ${pathname === '/manage' ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <LayoutDashboard size={16} />
@@ -123,8 +123,8 @@ export default function Navbar({ userName, role }: NavbarProps) {
                 </Link>
                 {['admin', 'subadmin'].includes(role) && (
                   <Link 
-                    href="/admin/rooms" 
-                    className={`nav-link ${pathname === '/admin/rooms' ? 'active' : ''}`}
+                    href="/manage/rooms" 
+                    className={`nav-link ${pathname === '/manage/rooms' ? 'active' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     <ListPlus size={16} />
@@ -133,8 +133,8 @@ export default function Navbar({ userName, role }: NavbarProps) {
                 )}
                 {role === 'admin' && (
                   <Link 
-                    href="/admin/users" 
-                    className={`nav-link ${pathname === '/admin/users' ? 'active' : ''}`}
+                    href="/manage/users" 
+                    className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     <Users size={16} />
