@@ -15,9 +15,9 @@ create policy "Users can view all push subscriptions"
   to authenticated
   using (true);
 
--- 3. Create separate insert, update, and delete policy restricted only to the owner
+-- 3. Create separate policy restricted only to the owner (using FOR ALL which covers write operations)
 create policy "Users can manage their own push subscriptions"
-  on public.push_subscriptions for insert update delete
+  on public.push_subscriptions for all
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
