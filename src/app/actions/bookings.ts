@@ -1,0 +1,162 @@
+'use server'
+
+import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+export async function createBooking(formData: {
+  roomId: string
+  startTime: string
+  endTime: string
+  purpose: string
+}) {
+  const supabase = await createClient()
+
+  // 1. Get current authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { error: 'ไม่พบข้อมูลผู้เข้าใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง' }
+  }
+
+  // 2. Validate input dates
+  const start = new Date(formData.startTime)
+  const end = new Date(formData.endTime)
+  const now = new Date()
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return { error: 'กรุณากรอกวันที่และเวลาให้ถูกต้อง' }
+  }
+
+  if (start >= end) {
+    return { error: 'เวลาเริ่มการจองต้องเกิดขึ้นก่อนเวลาสิ้นสุดการจอง' }
+  }
+
+  if (start < now) {
+    return { error: 'ไม่สามารถจองห้องประชุมในอดีตได้' }
+  }
+
+  // 3. Double booking prevention (Check overlapping bookings)
+  // Overlap condition:
+  // A booking overlaps if: start_time < new_end_time AND end_time > new_start_time
+  // And the booking status must be 'approved' or 'pending' (not 'rejected' or 'cancelled')
+  const { data: overlaps, error: overlapError } = await supabase
+    .from('bookings')
+    .select('id, start_time, end_time')
+    .eq('room_id', formData.roomId)
+    .in('status', ['pending', 'approved'])
+    .lt('start_time', end.toISOString())
+    .gt('end_time', start.toISOString())
+
+  if (overlapError) {
+    console.error('Overlap check error:', overlapError)
+    return { error: 'เกิดข้อผิดพลาดในการตรวจสอบคิวห้องว่าง' }
+  }
+
+  if (overlaps && overlaps.length > 0) {
+    return { error: 'ช่วงเวลาที่คุณเลือกมีผู้จองแล้วหรืออยู่ระหว่างรออนุมัติ กรุณาเลือกช่วงเวลาอื่น' }
+  }
+
+  // 4. Create the booking
+  const { error: insertError } = await supabase
+    .from('bookings')
+    .insert({
+      room_id: formData.roomId,
+      user_id: user.id,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      purpose: formData.purpose,
+      status: 'pending' // Default status is pending
+    })
+
+  if (insertError) {
+    console.error('Insert booking error:', insertError)
+    return { error: 'ไม่สามารถสร้างรายการจองห้องประชุมได้' }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/my-bookings')
+  return { success: true }
+}
+
+export async function cancelBooking(bookingId: string) {
+  const supabase = await createClient()
+
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { error: 'ไม่ได้รับอนุญาตในการทำรายการ' }
+  }
+
+  // Find booking to verify ownership
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('user_id, status')
+    .eq('id', bookingId)
+    .single()
+
+  if (fetchError || !booking) {
+    return { error: 'ไม่พบรายการจองห้องประชุมนี้' }
+  }
+
+  // Users can only cancel their own bookings, and only if not rejected/cancelled
+  if (booking.user_id !== user.id) {
+    return { error: 'คุณไม่มีสิทธิ์ยกเลิกรายการจองของผู้อื่น' }
+  }
+
+  if (booking.status === 'cancelled') {
+    return { error: 'รายการจองนี้ได้รับการยกเลิกไปแล้ว' }
+  }
+
+  // Update status to cancelled
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', bookingId)
+
+  if (updateError) {
+    return { error: 'ไม่สามารถยกเลิกรายการจองได้' }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/my-bookings')
+  return { success: true }
+}
+
+export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected', rejectionReason?: string) {
+  const supabase = await createClient()
+
+  // Verify user is admin
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { error: 'ไม่ได้รับอนุญาตในการทำรายการ' }
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    return { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ทำรายการนี้' }
+  }
+
+  // Update status
+  const updateData: any = { status }
+  if (status === 'rejected' && rejectionReason) {
+    updateData.rejection_reason = rejectionReason
+  }
+
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update(updateData)
+    .eq('id', bookingId)
+
+  if (updateError) {
+    return { error: 'ไม่สามารถเปลี่ยนสถานะรายการจองได้' }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/my-bookings')
+  return { success: true }
+}
