@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { playNotificationSound } from '@/utils/audio'
 import { savePushSubscription } from '@/app/actions/push'
+import AlertModal from '@/components/AlertModal'
 
 export default function UserProfile() {
   const supabase = createClient()
@@ -49,6 +50,7 @@ export default function UserProfile() {
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState<string | null>(null)
   const [passwordErrorMsg, setPasswordErrorMsg] = useState<string | null>(null)
   const [notiSuccess, setNotiSuccess] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   useEffect(() => {
     async function loadProfile() {
@@ -129,10 +131,12 @@ export default function UserProfile() {
       if (error) throw error
 
       setSuccessMsg('บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว' })
       // Dispatch event to refresh Navbar
       window.dispatchEvent(new Event('profile-updated'))
     } catch (err: any) {
       setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+      setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' })
     } finally {
       setSaveLoading(false)
     }
@@ -145,6 +149,7 @@ export default function UserProfile() {
     // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setErrorMsg('ขนาดไฟล์ภาพต้องไม่เกิน 2MB')
+      setAlertConfig({ type: 'error', title: 'ขนาดไฟล์เกินกำหนด', message: 'ขนาดไฟล์ภาพต้องไม่เกิน 2MB' })
       return
     }
 
@@ -178,10 +183,12 @@ export default function UserProfile() {
 
       setAvatarUrl(publicUrl)
       setSuccessMsg('อัปโหลดรูปภาพโปรไฟล์เรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'อัปโหลดสำเร็จ', message: 'อัปโหลดรูปภาพโปรไฟล์เรียบร้อยแล้ว' })
       // Dispatch event to refresh Navbar
       window.dispatchEvent(new Event('profile-updated'))
     } catch (err: any) {
       setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')
+      setAlertConfig({ type: 'error', title: 'อัปโหลดไม่สำเร็จ', message: err.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ' })
     } finally {
       setUploadLoading(false)
     }
@@ -194,11 +201,13 @@ export default function UserProfile() {
 
     if (newPassword !== confirmPassword) {
       setPasswordErrorMsg('รหัสผ่านและการยืนยันไม่ตรงกัน')
+      setAlertConfig({ type: 'error', title: 'รหัสผ่านไม่ตรงกัน', message: 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน' })
       return
     }
 
     if (newPassword.length < 6) {
       setPasswordErrorMsg('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร')
+      setAlertConfig({ type: 'error', title: 'รหัสผ่านสั้นเกินไป', message: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' })
       return
     }
 
@@ -212,10 +221,12 @@ export default function UserProfile() {
       if (error) throw error
 
       setPasswordSuccessMsg('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'เปลี่ยนรหัสผ่านสำเร็จ', message: 'เปลี่ยนรหัสผ่านใหม่เรียบร้อยแล้ว' })
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
       setPasswordErrorMsg(err.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน')
+      setAlertConfig({ type: 'error', title: 'เปลี่ยนรหัสผ่านไม่สำเร็จ', message: err.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' })
     } finally {
       setPasswordLoading(false)
     }
@@ -266,17 +277,18 @@ export default function UserProfile() {
 
   const handleRequestPushPermission = async () => {
     if (!('Notification' in window)) {
-      alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแจ้งเตือนระบบ')
+      setAlertConfig({ type: 'warning', title: 'ไม่รองรับการแจ้งเตือน', message: 'เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแจ้งเตือนระบบ' })
       return
     }
     const permission = await Notification.requestPermission()
     setPushPermission(permission)
     if (permission === 'granted') {
       setNotiSuccess('อนุญาตสิทธิ์การแจ้งเตือนสำเร็จ!')
+      setAlertConfig({ type: 'success', title: 'อนุญาตสำเร็จ', message: 'อนุญาตสิทธิ์การแจ้งเตือนเรียบร้อยแล้ว!' })
       await subscribeToPush()
       setTimeout(() => setNotiSuccess(null), 3000)
     } else if (permission === 'denied') {
-      alert('สิทธิ์การแจ้งเตือนถูกปฏิเสธ โปรดเปิดอนุญาตการตั้งค่าบนเบราว์เซอร์ของคุณ')
+      setAlertConfig({ type: 'error', title: 'สิทธิ์ถูกปฏิเสธ', message: 'สิทธิ์การแจ้งเตือนถูกปฏิเสธ โปรดเปิดอนุญาตการตั้งค่าบนเบราว์เซอร์ของคุณ' })
     }
   }
 
@@ -314,6 +326,7 @@ export default function UserProfile() {
     }
 
     setNotiSuccess('บันทึกการตั้งค่าการแจ้งเตือนแล้ว!')
+    setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกการตั้งค่าการแจ้งเตือนและระบบสั่นเรียบร้อยแล้ว!' })
     setTimeout(() => setNotiSuccess(null), 3000)
   }
 
@@ -925,6 +938,15 @@ export default function UserProfile() {
           background: rgba(255, 182, 193, 0.18) !important;
         }
       `}</style>
+      
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   )
 }

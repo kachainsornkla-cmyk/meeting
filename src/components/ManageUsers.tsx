@@ -7,6 +7,7 @@ import {
   Home, BookOpen, Key, RefreshCw, CheckCircle, 
   AlertCircle, Users, Award, Search, Filter, Edit2, X 
 } from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 interface UserItem {
   id: string
@@ -48,6 +49,7 @@ export default function ManageUsers({ users: initialUsers }: ManageUsersProps) {
   const [loading, setLoading] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   const handleEditClick = (user: UserItem) => {
     setEditingUser(user)
@@ -86,9 +88,11 @@ export default function ManageUsers({ users: initialUsers }: ManageUsersProps) {
 
     if (res.error) {
       setErrorMsg(res.error)
+      setAlertConfig({ type: 'error', title: 'อัปเดตไม่สำเร็จ', message: res.error })
       setLoading(false)
     } else {
       setSuccessMsg('อัปเดตข้อมูลผู้ใช้งานและสิทธิ์การเข้าใช้งานเรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'อัปเดตสำเร็จ', message: 'อัปเดตข้อมูลผู้ใช้งานและสิทธิ์การเข้าใช้งานเรียบร้อยแล้ว' })
       
       // Update local state
       setUsers(prev => prev.map(u => u.id === editingUser.id ? {
@@ -544,6 +548,14 @@ export default function ManageUsers({ users: initialUsers }: ManageUsersProps) {
           background: rgba(255, 182, 193, 0.05);
         }
       `}</style>
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   )
 }

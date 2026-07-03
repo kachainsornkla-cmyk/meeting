@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { cancelBooking } from '@/app/actions/bookings'
 import { Calendar, Clock, MapPin, AlertTriangle, FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 interface BookingItem {
   id: string
@@ -24,6 +25,7 @@ export default function MyBookings({ bookings }: MyBookingsProps) {
   const [filter, setFilter] = useState<string>('all')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   const filteredBookings = bookings.filter((b) => {
     if (filter === 'all') return true
@@ -44,7 +46,9 @@ export default function MyBookings({ bookings }: MyBookingsProps) {
 
     if (result.error) {
       setErrorMsg(result.error)
-      alert(result.error)
+      setAlertConfig({ type: 'error', title: 'ยกเลิกการจองไม่สำเร็จ', message: result.error })
+    } else {
+      setAlertConfig({ type: 'success', title: 'ยกเลิกการจองสำเร็จ', message: 'ยกเลิกการจองห้องประชุมนี้เรียบร้อยแล้ว' })
     }
   }
 
@@ -245,6 +249,15 @@ export default function MyBookings({ bookings }: MyBookingsProps) {
             </div>
           ))}
         </div>
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   )

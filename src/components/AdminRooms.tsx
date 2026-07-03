@@ -2,7 +2,11 @@
 
 import { useState } from 'react'
 import { addRoom, editRoom, deleteRoom } from '@/app/actions/rooms'
-import { Plus, Edit2, Trash2, Users, MapPin, Check, X, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react'
+import { 
+  Users, MapPin, Sparkles, Plus, Edit2, Trash2, X, ToggleLeft, ToggleRight,
+  Tv, Wifi, Video, FileText, CheckCircle, AlertTriangle
+} from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 interface RoomItem {
   id: string
@@ -33,6 +37,7 @@ export default function AdminRooms({ rooms }: AdminRoomsProps) {
 
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   const openAddModal = () => {
     setEditingRoom(null)
@@ -89,7 +94,13 @@ export default function AdminRooms({ rooms }: AdminRoomsProps) {
 
     if (result.error) {
       setErrorMsg(result.error)
+      setAlertConfig({ type: 'error', title: 'บันทึกข้อมูลไม่สำเร็จ', message: result.error })
     } else {
+      setAlertConfig({ 
+        type: 'success', 
+        title: 'บันทึกข้อมูลสำเร็จ', 
+        message: editingRoom ? 'แก้ไขข้อมูลห้องประชุมเรียบร้อยแล้ว' : 'เพิ่มห้องประชุมใหม่เรียบร้อยแล้ว' 
+      })
       setModalOpen(false)
     }
   }
@@ -104,7 +115,9 @@ export default function AdminRooms({ rooms }: AdminRoomsProps) {
     setLoading(false)
 
     if (result.error) {
-      alert(result.error)
+      setAlertConfig({ type: 'error', title: 'ลบห้องไม่สำเร็จ', message: result.error })
+    } else {
+      setAlertConfig({ type: 'success', title: 'ลบห้องสำเร็จ', message: `ลบห้องประชุม "${name}" เรียบร้อยแล้ว` })
     }
   }
 
@@ -120,7 +133,13 @@ export default function AdminRooms({ rooms }: AdminRoomsProps) {
     })
 
     if (result.error) {
-      alert(result.error)
+      setAlertConfig({ type: 'error', title: 'เปลี่ยนสถานะไม่สำเร็จ', message: result.error })
+    } else {
+      setAlertConfig({ 
+        type: 'success', 
+        title: 'เปลี่ยนสถานะสำเร็จ', 
+        message: `เปลี่ยนสถานะการเปิดให้บริการห้อง "${room.name}" เรียบร้อยแล้ว` 
+      })
     }
   }
 
@@ -452,6 +471,14 @@ export default function AdminRooms({ rooms }: AdminRoomsProps) {
             </form>
           </div>
         </div>
+      )}
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   )

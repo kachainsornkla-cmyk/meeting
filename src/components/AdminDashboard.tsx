@@ -6,6 +6,7 @@ import {
   Calendar, Clock, User, Mail, Check, X, AlertCircle, 
   FileText, CheckSquare, XSquare, ShieldAlert, List, CalendarDays 
 } from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 interface BookingItem {
   id: string
@@ -59,6 +60,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
 
   // Day selection modal state
   const [selectedDayBookings, setSelectedDayBookings] = useState<{ date: Date; items: BookingItem[] } | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   // Monthly Navigation State
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -143,8 +145,9 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
     const res = await updateBookingStatus(id, 'approved')
     setLoadingId(null)
     if (res.error) {
-      alert(res.error)
+      setAlertConfig({ type: 'error', title: 'อนุมัติไม่สำเร็จ', message: res.error })
     } else {
+      setAlertConfig({ type: 'success', title: 'อนุมัติสำเร็จ', message: 'อนุมัติการจองห้องประชุมเรียบร้อยแล้ว' })
       // If we are currently showing details modal, update it dynamically
       if (selectedDayBookings) {
         setSelectedDayBookings(prev => {
@@ -162,7 +165,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
     e.preventDefault()
     if (!rejectingId) return
     if (!rejectionReason.trim()) {
-      alert('กรุณากรอกเหตุผลในการปฏิเสธการจอง')
+      setAlertConfig({ type: 'warning', title: 'ระบุเหตุผล', message: 'กรุณากรอกเหตุผลในการปฏิเสธการจอง' })
       return
     }
 
@@ -171,8 +174,9 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
     setLoadingId(null)
     
     if (res.error) {
-      alert(res.error)
+      setAlertConfig({ type: 'error', title: 'ปฏิเสธไม่สำเร็จ', message: res.error })
     } else {
+      setAlertConfig({ type: 'success', title: 'ปฏิเสธการจองสำเร็จ', message: 'ปฏิเสธการจองห้องประชุมนี้เรียบร้อยแล้ว' })
       const currentId = rejectingId
       setRejectingId(null)
       setRejectionReason('')
@@ -851,6 +855,14 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
         </div>
       )}
 
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   )
 }

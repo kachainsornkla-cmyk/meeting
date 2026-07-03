@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getSystemSetting, updateSystemSetting } from '@/app/actions/settings'
 import { Shield, Bell, CheckCircle, AlertCircle, RefreshCw, Save } from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 export default function SystemSettings() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
@@ -11,6 +12,7 @@ export default function SystemSettings() {
   const [saveLoading, setSaveLoading] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   const rolesList = [
     { key: 'admin', label: 'ผู้ดูแลระบบ (Admin)' },
@@ -65,6 +67,7 @@ export default function SystemSettings() {
     const res1 = await updateSystemSetting('notify_new_booking_roles', selectedRoles)
     if (res1.error) {
       setErrorMsg(res1.error)
+      setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: res1.error })
       setSaveLoading(false)
       return
     }
@@ -74,8 +77,10 @@ export default function SystemSettings() {
 
     if (res2.error) {
       setErrorMsg(res2.error)
+      setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: res2.error })
     } else {
       setSuccessMsg('บันทึกการตั้งค่าระบบและบทบาทการแจ้งเตือนเรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกการตั้งค่าระบบและบทบาทการแจ้งเตือนเรียบร้อยแล้ว' })
     }
   }
 
@@ -232,6 +237,14 @@ export default function SystemSettings() {
         </form>
 
       </div>
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   )
 }

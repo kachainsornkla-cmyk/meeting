@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createBooking } from '@/app/actions/bookings'
 import { Users, MapPin, Calendar, Clock, Sparkles, Filter, Search, X, Check, AlertCircle } from 'lucide-react'
+import AlertModal from '@/components/AlertModal'
 
 interface Room {
   id: string
@@ -45,6 +46,7 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
   // Filter rooms based on search & capacity
   const filteredRooms = rooms.filter((room) => {
@@ -128,6 +130,7 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       setErrorMsg('กรุณากรอกวันที่และเวลาให้ถูกต้อง')
+      setAlertConfig({ type: 'error', title: 'ข้อมูลไม่ถูกต้อง', message: 'กรุณากรอกวันที่และเวลาให้ถูกต้อง' })
       setSubmitting(false)
       return
     }
@@ -143,13 +146,16 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
 
     if (result.error) {
       setErrorMsg(result.error)
+      setAlertConfig({ type: 'error', title: 'จองห้องประชุมไม่สำเร็จ', message: result.error })
     } else {
       setSuccessMsg('ส่งคำขอจองห้องประชุมเรียบร้อยแล้ว! กำลังรอผู้ดูแลระบบอนุมัติ')
+      setAlertConfig({ 
+        type: 'success', 
+        title: 'จองห้องประชุมสำเร็จ', 
+        message: 'ส่งคำขอจองห้องประชุมเรียบร้อยแล้ว! กำลังรอผู้ดูแลระบบอนุมัติ' 
+      })
       setPurpose('')
-      setTimeout(() => {
-        setSuccessMsg(null)
-        setSelectedRoom(null) // Close modal
-      }, 3000)
+      setSelectedRoom(null) // Close modal immediately on success
     }
   }
 
@@ -553,6 +559,15 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   )
