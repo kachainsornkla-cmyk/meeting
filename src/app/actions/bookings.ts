@@ -73,8 +73,64 @@ export async function createBooking(formData: {
     return { error: 'ไม่สามารถสร้างรายการจองห้องประชุมได้' }
   }
 
+  // Notify configured roles on new booking creation
+  try {
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+      
+    const { data: roomData } = await supabase
+      .from('rooms')
+      .select('name')
+      .eq('id', formData.roomId)
+      .single()
+
+    if (userProfile && roomData) {
+      const userName = userProfile.full_name || 'ผู้ใช้'
+      const roomName = roomData.name || 'ห้องประชุม'
+      const dateStr = start.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+      const timeStr = `${start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}-${end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`
+      
+      const title = 'คำขอจองห้องประชุมใหม่'
+      const content = `${userName} ได้ขอจองห้อง ${roomName} ในวันที่ ${dateStr} เวลา ${timeStr} น. (รอการอนุมัติ)`
+
+      // Fetch notify target roles from system settings
+      const { data: config } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'notify_new_booking_roles')
+        .single()
+
+      const targetRoles = Array.isArray(config?.value) 
+        ? config.value 
+        : ['admin', 'subadmin', 'admin booking']
+
+      if (targetRoles.length > 0) {
+        // Find users matching these roles
+        const { data: targetUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('role', targetRoles)
+
+        if (targetUsers) {
+          for (const targetUser of targetUsers) {
+            // Do not notify the booking creator themselves
+            if (targetUser.id !== user.id) {
+              await createNotification(targetUser.id, title, content)
+            }
+          }
+        }
+      }
+    }
+  } catch (notiErr) {
+    console.error('Failed to trigger booking creation notifications:', notiErr)
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/my-bookings')
+  revalidatePath('/manage')
   return { success: true }
 }
 

@@ -252,14 +252,24 @@ export default function Navbar({ userName, role }: NavbarProps) {
                   </Link>
                 )}
                 {role === 'admin' && (
-                  <Link 
-                    href="/manage/users" 
-                    className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Users size={16} />
-                    จัดการผู้ใช้งาน
-                  </Link>
+                  <>
+                    <Link 
+                      href="/manage/users" 
+                      className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Users size={16} />
+                      จัดการผู้ใช้งาน
+                    </Link>
+                    <Link 
+                      href="/manage/settings" 
+                      className={`nav-link ${pathname === '/manage/settings' ? 'active' : ''}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Shield size={16} />
+                      ตั้งค่าระบบ
+                    </Link>
+                  </>
                 )}
               </>
             ) : (
