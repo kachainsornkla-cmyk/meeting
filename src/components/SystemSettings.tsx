@@ -6,6 +6,7 @@ import { Shield, Bell, CheckCircle, AlertCircle, RefreshCw, Save } from 'lucide-
 
 export default function SystemSettings() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [reminderBeforeMins, setReminderBeforeMins] = useState(15)
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
@@ -22,15 +23,24 @@ export default function SystemSettings() {
 
   useEffect(() => {
     async function loadSettings() {
+      // Load booking notification roles
       const res = await getSystemSetting('notify_new_booking_roles')
       if (res.error) {
         setErrorMsg(res.error)
       } else if (res.value) {
         setSelectedRoles(res.value)
       } else {
-        // Fallback default if not seeded yet
         setSelectedRoles(['admin', 'subadmin', 'admin booking'])
       }
+
+      // Load pre-meeting warning minutes
+      const resRemind = await getSystemSetting('reminder_before_minutes')
+      if (resRemind.error) {
+        setErrorMsg(resRemind.error)
+      } else if (resRemind.value !== null) {
+        setReminderBeforeMins(Number(resRemind.value))
+      }
+
       setLoading(false)
     }
     loadSettings()
@@ -52,11 +62,18 @@ export default function SystemSettings() {
     setSuccessMsg(null)
     setErrorMsg(null)
 
-    const res = await updateSystemSetting('notify_new_booking_roles', selectedRoles)
+    const res1 = await updateSystemSetting('notify_new_booking_roles', selectedRoles)
+    if (res1.error) {
+      setErrorMsg(res1.error)
+      setSaveLoading(false)
+      return
+    }
+
+    const res2 = await updateSystemSetting('reminder_before_minutes', reminderBeforeMins)
     setSaveLoading(false)
 
-    if (res.error) {
-      setErrorMsg(res.error)
+    if (res2.error) {
+      setErrorMsg(res2.error)
     } else {
       setSuccessMsg('บันทึกการตั้งค่าระบบและบทบาทการแจ้งเตือนเรียบร้อยแล้ว')
     }
@@ -164,6 +181,34 @@ export default function SystemSettings() {
                 </label>
               )
             })}
+          </div>
+
+          {/* Pre-Meeting Reminder Settings Card */}
+          <div style={{ marginBottom: '28px', background: 'rgba(0,0,0,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bell size={18} style={{ color: 'var(--primary)' }} />
+              ตั้งค่าการแจ้งเตือนก่อนการเริ่มประชุม (Pre-Meeting Reminder)
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
+              กำหนดเวลาในการส่งสัญญาณเตือน/ข้อความไปยังผู้จองและผู้รับผิดชอบห้องประชุม ก่อนที่จะถึงเวลาเริ่มต้นประชุมจริง
+            </p>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" htmlFor="reminder_mins" style={{ fontSize: '0.8rem', fontWeight: 600 }}>ระยะเวลาแจ้งเตือนล่วงหน้า</label>
+              <select
+                id="reminder_mins"
+                className="form-input"
+                value={reminderBeforeMins}
+                onChange={(e) => setReminderBeforeMins(Number(e.target.value))}
+                style={{ appearance: 'auto', background: 'white' }}
+              >
+                <option value={5}>5 นาที ก่อนเริ่มประชุม</option>
+                <option value={10}>10 นาที ก่อนเริ่มประชุม</option>
+                <option value={15}>15 นาที ก่อนเริ่มประชุม (แนะนำ)</option>
+                <option value={30}>30 นาที ก่อนเริ่มประชุม</option>
+                <option value={60}>60 นาที (1 ชั่วโมง) ก่อนเริ่มประชุม</option>
+                <option value={0}>🚫 ปิดการแจ้งเตือนล่วงหน้า</option>
+              </select>
+            </div>
           </div>
 
           <button 

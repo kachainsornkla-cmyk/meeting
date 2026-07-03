@@ -546,6 +546,10 @@ export default function UserProfile() {
                 <option value="chime">เสียงระฆังคู่ (Double Chime)</option>
                 <option value="beep">เสียงดิจิตอลสั้น (Digital Beep)</option>
                 <option value="siren">เสียงเตือนภัยเลื่อนถี่ (Siren Pulse)</option>
+                <option value="melody">เสียงทำนองโรงแรมประสาน (Melody 2.2 วินาที)</option>
+                <option value="long-bell">เสียงระฆังกังวานกึกก้อง (Long Bell 2.5 วินาที)</option>
+                <option value="alarm-long">เสียงสัญญาณเตือนภัยยาว (Alarm 2.6 วินาที)</option>
+                <option value="sparkle">เสียงประกายซินธิไซเซอร์ (Sparkle 2.0 วินาที)</option>
               </select>
             </div>
 

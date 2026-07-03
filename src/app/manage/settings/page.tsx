@@ -25,8 +25,8 @@ export default async function AdminSettingsPage() {
     redirect('/login')
   }
 
-  if (profile.role !== 'admin') {
-    redirect('/manage') // Only admins can configure system notifications
+  if (!['admin', 'subadmin'].includes(profile.role)) {
+    redirect('/manage') // Only admins and subadmins can configure system notifications
   }
 
   return (
