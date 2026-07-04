@@ -128,9 +128,11 @@ export default function UserProfile() {
     }
   }, [])
 
-  const handleSaveNamePopup = async (e: React.FormEvent) => {
+  const handleSaveSetupPopup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!popupPrefix || !popupFirstName.trim() || !popupLastName.trim()) {
+    if (!popupPrefix || !popupFirstName.trim() || !popupLastName.trim() ||
+        !phone.trim() || !learningGroup || !workGroup || !position || !academicStanding ||
+        !advisorRole.trim() || !responsibleRoom.trim()) {
       setPopupError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
       return
     }
@@ -142,7 +144,14 @@ export default function UserProfile() {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          full_name: combinedName, 
+          full_name: combinedName,
+          phone,
+          learning_group: learningGroup,
+          work_group: workGroup,
+          position,
+          academic_standing: academicStanding,
+          advisor_role: advisorRole,
+          responsible_room: responsibleRoom,
           updated_at: new Date().toISOString() 
         })
         .eq('id', user.id)
@@ -153,11 +162,18 @@ export default function UserProfile() {
       setShowNamePopup(false)
       setAlertConfig({
         type: 'success',
-        title: 'บันทึกชื่อสำเร็จ',
-        message: 'บันทึกชื่อจริงของคุณแล้ว กรุณากรอกข้อมูลโปรไฟล์ที่เหลือในหน้านี้ให้ครบถ้วนด้วยครับ'
+        title: 'ตั้งค่าโปรไฟล์สำเร็จ',
+        message: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว กำลังนำคุณเข้าสู่ระบบ...'
       })
       // Dispatch event to refresh Navbar
       window.dispatchEvent(new Event('profile-updated'))
+
+      // Redirect after a short delay
+      const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+      const nextUrl = allowedAdminRoles.includes(userRole) ? '/manage' : '/dashboard'
+      setTimeout(() => {
+        router.push(nextUrl)
+      }, 1500)
     } catch (err: any) {
       setPopupError(err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
     } finally {
@@ -1038,16 +1054,18 @@ export default function UserProfile() {
         }}>
           <div className="glass-panel animate-fade-in" style={{
             width: '100%',
-            maxWidth: '450px',
+            maxWidth: '680px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             padding: '35px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
           }}>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px', textAlign: 'center' }}>
-              ยินดีต้อนรับ! กรุณากรอกชื่อจริงของคุณ
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', textAlign: 'center' }}>
+              ยินดีต้อนรับ! กรุณากรอกข้อมูลส่วนตัวของคุณ
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px', textAlign: 'center', lineHeight: 1.45 }}>
-              กรุณาระบุ คำนำหน้าชื่อ ชื่อจริง และนามสกุลจริง เพื่อใช้สำหรับการจองห้องประชุมในระบบ
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '24px', textAlign: 'center', lineHeight: 1.45 }}>
+              กรุณาระบุข้อมูลทุกช่องที่มีเครื่องหมายดอกจันสีแดง (<span style={{ color: 'var(--danger)' }}>*</span>) ให้ครบถ้วนเพื่อความถูกต้องในการจองห้องประชุม
             </p>
 
             {popupError && (
@@ -1065,9 +1083,9 @@ export default function UserProfile() {
               </div>
             )}
 
-            <form onSubmit={handleSaveNamePopup} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSaveSetupPopup} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px' }}>
               <div className="form-group">
-                <label className="form-label">คำนำหน้าชื่อ</label>
+                <label className="form-label">คำนำหน้าชื่อ <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <select
                   className="form-input"
                   value={popupPrefix}
@@ -1086,7 +1104,7 @@ export default function UserProfile() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">ชื่อจริง (First Name)</label>
+                <label className="form-label">ชื่อจริง (First Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input
                   type="text"
                   className="form-input"
@@ -1097,8 +1115,8 @@ export default function UserProfile() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">นามสกุลจริง (Last Name)</label>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">นามสกุลจริง (Last Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input
                   type="text"
                   className="form-input"
@@ -1109,10 +1127,126 @@ export default function UserProfile() {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">เบอร์โทรศัพท์ (Phone) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input 
+                  type="tel" 
+                  className="form-input" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0812345678"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ตำแหน่ง (Position) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select 
+                  className="form-input" 
+                  value={position} 
+                  onChange={(e) => setPosition(e.target.value)}
+                  style={{ appearance: 'auto' }}
+                  required
+                >
+                  <option value="">-- เลือกตำแหน่ง --</option>
+                  <option value="ผู้อำนวยการโรงเรียน">ผู้อำนวยการโรงเรียน</option>
+                  <option value="รองผู้อำนวยการโรงเรียน">รองผู้อำนวยการโรงเรียน</option>
+                  <option value="ครู">ครู</option>
+                  <option value="ครูผู้ช่วย">ครูผู้ช่วย</option>
+                  <option value="พนักงานราชการ">พนักงานราชการ</option>
+                  <option value="ครูอัตราจ้าง">ครูอัตราจ้าง</option>
+                  <option value="เจ้าหน้าที่ธุรการ">เจ้าหน้าที่ธุรการ</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">กลุ่มสาระการเรียนรู้ (Learning Group) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select 
+                  className="form-input" 
+                  value={learningGroup} 
+                  onChange={(e) => setLearningGroup(e.target.value)}
+                  style={{ appearance: 'auto' }}
+                  required
+                >
+                  <option value="">-- เลือกกลุ่มสาระ --</option>
+                  <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+                  <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                  <option value="ภาษาไทย">ภาษาไทย</option>
+                  <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+                  <option value="สังคมศึกษา ศาสนา และวัฒนธรรม">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+                  <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+                  <option value="ศิลปะ">ศิลปะ</option>
+                  <option value="การงานอาชีพ">การงานอาชีพ</option>
+                  <option value="กิจกรรมพัฒนาผู้เรียน/แนะแนว">กิจกรรมพัฒนาผู้เรียน/แนะแนว</option>
+                  <option value="ฝ่ายธุรการ/สนับสนุน">ฝ่ายธุรการ/สนับสนุน</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">กลุ่มงาน (Work Group) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select 
+                  className="form-input" 
+                  value={workGroup} 
+                  onChange={(e) => setWorkGroup(e.target.value)}
+                  style={{ appearance: 'auto' }}
+                  required
+                >
+                  <option value="">-- เลือกกลุ่มงาน --</option>
+                  <option value="กลุ่มบริหารวิชาการ">กลุ่มบริหารวิชาการ</option>
+                  <option value="กลุ่มบริหารงบประมาณและบุคคล">กลุ่มบริหารงบประมาณและบุคคล</option>
+                  <option value="กลุ่มบริหารงานทั่วไป">กลุ่มบริหารงานทั่วไป</option>
+                  <option value="กลุ่มบริหารกิจการนักเรียน">กลุ่มบริหารกิจการนักเรียน</option>
+                  <option value="ไม่มี (ครูผู้สอนอย่างเดียว)">ไม่มี (ครูผู้สอนอย่างเดียว)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">วิทยฐานะ (Academic Standing) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select 
+                  className="form-input" 
+                  value={academicStanding} 
+                  onChange={(e) => setAcademicStanding(e.target.value)}
+                  style={{ appearance: 'auto' }}
+                  required
+                >
+                  <option value="">-- เลือกวิทยฐานะ --</option>
+                  <option value="ไม่มีวิทยฐานะ">ไม่มีวิทยฐานะ</option>
+                  <option value="ครูชำนาญการ">ครูชำนาญการ</option>
+                  <option value="ครูชำนาญการพิเศษ">ครูชำนาญการพิเศษ</option>
+                  <option value="ครูเชี่ยวชาญ">ครูเชี่ยวชาญ</option>
+                  <option value="ครูเชี่ยวชาญพิเศษ">ครูเชี่ยวชาญพิเศษ</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ครูที่ปรึกษาชั้น/ห้อง (Advisor Role) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={advisorRole}
+                  onChange={(e) => setAdvisorRole(e.target.value)}
+                  placeholder="ม.1/1 (ระบุ 'ไม่มี' หากไม่ได้เป็น)"
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">ห้องที่รับผิดชอบ (Responsible Room) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={responsibleRoom}
+                  onChange={(e) => setResponsibleRoom(e.target.value)}
+                  placeholder="ห้อง 411 (ระบุ 'ไม่มี' หากไม่มี)"
+                  required
+                />
+              </div>
+
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '14px', marginTop: '10px' }}
+                style={{ gridColumn: 'span 2', padding: '14px', marginTop: '10px' }}
                 disabled={popupLoading}
               >
                 {popupLoading ? (
@@ -1121,7 +1255,7 @@ export default function UserProfile() {
                     กำลังบันทึกข้อมูล...
                   </>
                 ) : (
-                  'บันทึกข้อมูลชื่อ-นามสกุล'
+                  'บันทึกข้อมูลส่วนตัวทั้งหมด'
                 )}
               </button>
             </form>
