@@ -95,6 +95,33 @@ export default function UserProfile() {
               const params = new URLSearchParams(window.location.search)
               if (params.get('setup') === 'true' && !profile.phone) {
                 setShowNamePopup(true)
+                
+                // Pre-populate name fields if they already have full_name (e.g. email register)
+                if (profile.full_name) {
+                  const name = profile.full_name.trim()
+                  const prefixes = ["นาย", "นางสาว", "นาง", "ดร.", "ครู", "อาจารย์"]
+                  let matchedPrefix = ''
+                  for (const p of prefixes) {
+                    if (name.startsWith(p)) {
+                      matchedPrefix = p
+                      break
+                    }
+                  }
+                  
+                  if (matchedPrefix) {
+                    setPopupPrefix(matchedPrefix)
+                    const nameWithoutPrefix = name.substring(matchedPrefix.length).trim()
+                    const parts = nameWithoutPrefix.split(/\s+/)
+                    setPopupFirstName(parts[0] || '')
+                    setPopupLastName(parts.slice(1).join(' '))
+                  } else {
+                    const parts = name.split(/\s+/)
+                    if (parts.length > 0) {
+                      setPopupFirstName(parts[0])
+                      setPopupLastName(parts.slice(1).join(' '))
+                    }
+                  }
+                }
               }
             }
 
