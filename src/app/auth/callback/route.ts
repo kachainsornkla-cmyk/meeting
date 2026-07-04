@@ -24,6 +24,7 @@ export async function GET(request: Request) {
         const googleName = user.user_metadata?.full_name || user.user_metadata?.name
         const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture
 
+        let isNewUser = false;
         if (profile) {
           role = profile.role
           
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
           }
         } else {
           // If profile is missing (failsafe creation)
+          isNewUser = true
           const { data: profilesList } = await supabase.from('profiles').select('id').limit(1)
           const isFirstUser = !profilesList || profilesList.length === 0
           role = isFirstUser ? 'admin' : 'user'
@@ -66,6 +68,10 @@ export async function GET(request: Request) {
         }
         const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
         
+        if (isNewUser) {
+          return NextResponse.redirect(`${origin}/profile?setup=true`)
+        }
+
         if (allowedAdminRoles.includes(role)) {
           return NextResponse.redirect(`${origin}/manage`)
         } else {

@@ -76,6 +76,18 @@ export default function UserProfile() {
             setAdvisorRole(profile.advisor_role || '')
             setResponsibleRoom(profile.responsible_room || '')
             setAvatarUrl(profile.avatar_url || '')
+
+            // Check if URL has ?setup=true to prompt for real name
+            if (typeof window !== 'undefined') {
+              const params = new URLSearchParams(window.location.search)
+              if (params.get('setup') === 'true') {
+                setAlertConfig({
+                  type: 'info',
+                  title: 'กรุณาอัปเดตข้อมูลของคุณ',
+                  message: 'ยินดีต้อนรับสมาชิกใหม่! เพื่อความถูกต้องในการใช้งานจองห้องประชุม กรุณาตรวจสอบและระบุชื่อ-นามสกุลจริงของคุณในฟิลด์ "ชื่อ-นามสกุล" แล้วกดบันทึกข้อมูลส่วนตัวด้านล่างสุดด้วยครับ'
+                })
+              }
+            }
           }
         }
       } catch (err) {
