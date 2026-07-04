@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 import { 
   User, Mail, Phone, Briefcase, GraduationCap, 
   Home, BookOpen, Camera, Key, RefreshCw, 
@@ -13,8 +14,18 @@ import AlertModal from '@/components/AlertModal'
 
 export default function UserProfile() {
   const supabase = createClient()
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [userRole, setUserRole] = useState('user')
   
+  // Name Popup States
+  const [showNamePopup, setShowNamePopup] = useState(false)
+  const [popupPrefix, setPopupPrefix] = useState('')
+  const [popupFirstName, setPopupFirstName] = useState('')
+  const [popupLastName, setPopupLastName] = useState('')
+  const [popupError, setPopupError] = useState<string | null>(null)
+  const [popupLoading, setPopupLoading] = useState(false)
+
   // Profile Fields
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -76,18 +87,17 @@ export default function UserProfile() {
             setAdvisorRole(profile.advisor_role || '')
             setResponsibleRoom(profile.responsible_room || '')
             setAvatarUrl(profile.avatar_url || '')
+            setUserRole(profile.role || 'user')
 
-            // Check if URL has ?setup=true to prompt for real name
+            // Check if URL has ?setup=true to prompt for real name/popup
             if (typeof window !== 'undefined') {
               const params = new URLSearchParams(window.location.search)
-              if (params.get('setup') === 'true') {
-                setAlertConfig({
-                  type: 'info',
-                  title: 'กรุณาอัปเดตข้อมูลของคุณ',
-                  message: 'ยินดีต้อนรับสมาชิกใหม่! เพื่อความถูกต้องในการใช้งานจองห้องประชุม กรุณาตรวจสอบและระบุชื่อ-นามสกุลจริงของคุณในฟิลด์ "ชื่อ-นามสกุล" แล้วกดบันทึกข้อมูลส่วนตัวด้านล่างสุดด้วยครับ'
-                })
+              if (params.get('setup') === 'true' && !profile.phone) {
+                setShowNamePopup(true)
               }
             }
+
+
           }
         }
       } catch (err) {
@@ -118,11 +128,60 @@ export default function UserProfile() {
     }
   }, [])
 
+  const handleSaveNamePopup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!popupPrefix || !popupFirstName.trim() || !popupLastName.trim()) {
+      setPopupError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
+      return
+    }
+    setPopupLoading(true)
+    setPopupError(null)
+    
+    const combinedName = `${popupPrefix}${popupFirstName.trim()} ${popupLastName.trim()}`
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          full_name: combinedName, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      setFullName(combinedName)
+      setShowNamePopup(false)
+      setAlertConfig({
+        type: 'success',
+        title: 'บันทึกชื่อสำเร็จ',
+        message: 'บันทึกชื่อจริงของคุณแล้ว กรุณากรอกข้อมูลโปรไฟล์ที่เหลือในหน้านี้ให้ครบถ้วนด้วยครับ'
+      })
+      // Dispatch event to refresh Navbar
+      window.dispatchEvent(new Event('profile-updated'))
+    } catch (err: any) {
+      setPopupError(err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+    } finally {
+      setPopupLoading(false)
+    }
+  }
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaveLoading(true)
     setSuccessMsg(null)
     setErrorMsg(null)
+
+    // Force check all fields
+    if (!fullName.trim() || !phone.trim() || !learningGroup || !workGroup || !position || !academicStanding || !advisorRole.trim() || !responsibleRoom.trim()) {
+      setErrorMsg('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วนทุกช่อง')
+      setAlertConfig({ 
+        type: 'error', 
+        title: 'ข้อมูลไม่ครบถ้วน', 
+        message: 'กรุณากรอกข้อมูลส่วนตัวและเลือกค่าทุกช่องให้ครบถ้วนก่อนบันทึกข้อมูล' 
+      })
+      setSaveLoading(false)
+      return
+    }
 
     try {
       const { error } = await supabase
@@ -146,6 +205,16 @@ export default function UserProfile() {
       setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว' })
       // Dispatch event to refresh Navbar
       window.dispatchEvent(new Event('profile-updated'))
+
+      // If we are in setup mode, redirect to the booking page
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('setup') === 'true') {
+        const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+        const nextUrl = allowedAdminRoles.includes(userRole) ? '/manage' : '/dashboard'
+        setTimeout(() => {
+          router.push(nextUrl)
+        }, 1500)
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
       setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' })
@@ -951,6 +1020,115 @@ export default function UserProfile() {
         }
       `}</style>
       
+      {/* Name Setup Popup Modal */}
+      {showNamePopup && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+        }}>
+          <div className="glass-panel animate-fade-in" style={{
+            width: '100%',
+            maxWidth: '450px',
+            padding: '35px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
+          }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px', textAlign: 'center' }}>
+              ยินดีต้อนรับ! กรุณากรอกชื่อจริงของคุณ
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px', textAlign: 'center', lineHeight: 1.45 }}>
+              กรุณาระบุ คำนำหน้าชื่อ ชื่อจริง และนามสกุลจริง เพื่อใช้สำหรับการจองห้องประชุมในระบบ
+            </p>
+
+            {popupError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '8px',
+                color: 'var(--danger)',
+                fontSize: '0.85rem',
+                padding: '12px',
+                marginBottom: '20px',
+                textAlign: 'center',
+              }}>
+                {popupError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveNamePopup} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group">
+                <label className="form-label">คำนำหน้าชื่อ</label>
+                <select
+                  className="form-input"
+                  value={popupPrefix}
+                  onChange={(e) => setPopupPrefix(e.target.value)}
+                  required
+                  style={{ appearance: 'auto' }}
+                >
+                  <option value="">-- เลือกคำนำหน้าชื่อ --</option>
+                  <option value="นาย">นาย</option>
+                  <option value="นาง">นาง</option>
+                  <option value="นางสาว">นางสาว</option>
+                  <option value="ดร.">ดร.</option>
+                  <option value="ครู">ครู</option>
+                  <option value="อาจารย์">อาจารย์</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ชื่อจริง (First Name)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={popupFirstName}
+                  onChange={(e) => setPopupFirstName(e.target.value)}
+                  placeholder="สมชาย"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">นามสกุลจริง (Last Name)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={popupLastName}
+                  onChange={(e) => setPopupLastName(e.target.value)}
+                  placeholder="ใจดี"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '14px', marginTop: '10px' }}
+                disabled={popupLoading}
+              >
+                {popupLoading ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    กำลังบันทึกข้อมูล...
+                  </>
+                ) : (
+                  'บันทึกข้อมูลชื่อ-นามสกุล'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {alertConfig && (
         <AlertModal
           type={alertConfig.type}

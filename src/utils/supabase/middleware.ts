@@ -43,15 +43,33 @@ export async function updateSession(request: NextRequest) {
 
   // 2. If logged in, perform role-based access checks
   if (user) {
-    // Get user's profile and role
+    // Get user's profile and check for completeness
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('*')
       .eq('id', user.id)
       .single()
 
     const role = profile?.role || 'user'
     const allowedAdminRoles = ['admin', 'subadmin', 'admin booking', 'Housekeeper']
+
+    const isIncomplete = !profile || 
+      !profile.full_name || profile.full_name.trim() === '' ||
+      !profile.phone || profile.phone.trim() === '' ||
+      !profile.learning_group || profile.learning_group.trim() === '' ||
+      !profile.work_group || profile.work_group.trim() === '' ||
+      !profile.position || profile.position.trim() === '' ||
+      !profile.academic_standing || profile.academic_standing.trim() === '' ||
+      !profile.advisor_role || profile.advisor_role.trim() === '' ||
+      !profile.responsible_room || profile.responsible_room.trim() === '';
+
+    // If profile is incomplete, force redirect to /profile?setup=true
+    if (isIncomplete && path !== '/profile' && !path.startsWith('/auth')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/profile'
+      url.searchParams.set('setup', 'true')
+      return NextResponse.redirect(url)
+    }
 
     // Block non-admins from /manage
     if (path.startsWith('/manage')) {
