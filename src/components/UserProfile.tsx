@@ -25,6 +25,7 @@ export default function UserProfile() {
   const [popupLastName, setPopupLastName] = useState('')
   const [popupError, setPopupError] = useState<string | null>(null)
   const [popupLoading, setPopupLoading] = useState(false)
+  const [customPrefix, setCustomPrefix] = useState('')
 
   // Profile Fields
   const [fullName, setFullName] = useState('')
@@ -130,7 +131,8 @@ export default function UserProfile() {
 
   const handleSaveSetupPopup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!popupPrefix || !popupFirstName.trim() || !popupLastName.trim() ||
+    const finalPrefix = popupPrefix === 'อื่นๆ' ? customPrefix.trim() : popupPrefix;
+    if (!finalPrefix || !popupFirstName.trim() || !popupLastName.trim() ||
         !phone.trim() || !learningGroup || !workGroup || !position || !academicStanding ||
         !advisorRole.trim() || !responsibleRoom.trim()) {
       setPopupError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
@@ -139,7 +141,7 @@ export default function UserProfile() {
     setPopupLoading(true)
     setPopupError(null)
     
-    const combinedName = `${popupPrefix}${popupFirstName.trim()} ${popupLastName.trim()}`
+    const combinedName = `${finalPrefix}${popupFirstName.trim()} ${popupLastName.trim()}`
     try {
       const { error } = await supabase
         .from('profiles')
@@ -1089,7 +1091,12 @@ export default function UserProfile() {
                 <select
                   className="form-input"
                   value={popupPrefix}
-                  onChange={(e) => setPopupPrefix(e.target.value)}
+                  onChange={(e) => {
+                    setPopupPrefix(e.target.value)
+                    if (e.target.value !== 'อื่นๆ') {
+                      setCustomPrefix('')
+                    }
+                  }}
                   required
                   style={{ appearance: 'auto' }}
                 >
@@ -1100,20 +1107,49 @@ export default function UserProfile() {
                   <option value="ดร.">ดร.</option>
                   <option value="ครู">ครู</option>
                   <option value="อาจารย์">อาจารย์</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">ชื่อจริง (First Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={popupFirstName}
-                  onChange={(e) => setPopupFirstName(e.target.value)}
-                  placeholder="สมชาย"
-                  required
-                />
-              </div>
+              {popupPrefix === 'อื่นๆ' ? (
+                <div className="form-group animate-fade-in">
+                  <label className="form-label">ระบุคำนำหน้าชื่อ <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={customPrefix}
+                    onChange={(e) => setCustomPrefix(e.target.value)}
+                    placeholder="เช่น คุณหญิง, ร.ต.อ."
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">ชื่อจริง (First Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="สมชาย"
+                    required
+                  />
+                </div>
+              )}
+
+              {popupPrefix === 'อื่นๆ' && (
+                <div className="form-group animate-fade-in" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">ชื่อจริง (First Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="สมชาย"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">นามสกุลจริง (Last Name) <span style={{ color: 'var(--danger)' }}>*</span></label>
