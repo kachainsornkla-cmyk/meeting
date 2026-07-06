@@ -94,8 +94,8 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    // Redirect administrative roles away from user dashboard to admin panel for better UX
-    if (path.startsWith('/dashboard') && allowedAdminRoles.includes(role)) {
+    // Redirect housekeeper away from user dashboard to admin panel (since they can't book rooms)
+    if (path.startsWith('/dashboard') && role === 'Housekeeper') {
       const url = request.nextUrl.clone()
       url.pathname = '/manage'
       return NextResponse.redirect(url)
