@@ -354,16 +354,14 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   bottom: 0;
   width: 280px;
-  background: rgba(255, 240, 243, 0.92); /* Soft cotton candy pink */
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-right: 1px solid rgba(255, 137, 164, 0.2);
+  background: linear-gradient(180deg, #fff2f5 0%, #ffe3e8 100%); /* Rich solid blushing pastel pink */
+  border-right: 1px solid #ffccd5;
   display: flex;
   flex-direction: column;
   z-index: 1010;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
-  box-shadow: 4px 0 24px rgba(255, 182, 193, 0.15);
+  box-shadow: 4px 0 24px rgba(255, 182, 193, 0.25);
 }
 
 .sidebar-logo {
@@ -372,21 +370,23 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(255, 137, 164, 0.15);
+  border-bottom: 1px solid #ffccd5;
+  background: rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .sidebar-logo span {
-  background: linear-gradient(to right, HSL(345, 90%, 65%), HSL(280, 80%, 65%));
+  background: linear-gradient(to right, HSL(345, 90%, 60%), HSL(280, 80%, 60%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .sidebar-profile {
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 137, 164, 0.15);
+  border-bottom: 1px solid #ffccd5;
+  background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -407,7 +407,7 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-section-title {
   font-size: 0.72rem;
   font-weight: 800;
-  color: HSL(345, 60%, 55%); /* Bright sweet pastel pink section labels */
+  color: HSL(345, 60%, 50%); /* Bright sweet pastel pink section labels */
   padding: 24px 24px 8px 24px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -427,15 +427,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 182, 193, 0.15);
+  background: rgba(255, 255, 255, 0.35);
   color: var(--primary);
 }
 
 .sidebar-link.active {
-  background: linear-gradient(135deg, rgba(255, 137, 164, 0.15), rgba(168, 85, 247, 0.08));
-  color: var(--primary);
+  background: rgba(255, 255, 255, 0.65); /* white overlay contrast */
+  color: HSL(345, 90%, 55%);
   border-left-color: var(--primary);
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(255, 137, 164, 0.08);
 }
 
 .sidebar-link svg {
