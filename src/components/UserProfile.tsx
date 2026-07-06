@@ -160,7 +160,7 @@ export default function UserProfile() {
     e.preventDefault()
     const finalPrefix = popupPrefix === 'อื่นๆ' ? customPrefix.trim() : popupPrefix;
     if (!finalPrefix || !popupFirstName.trim() || !popupLastName.trim() ||
-        !phone.trim() || !learningGroup || !workGroup || !position || !academicStanding ||
+        !phone.trim() || !learningGroup || !workGroup || !position ||
         !advisorRole.trim() || !responsibleRoom.trim()) {
       setPopupError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง')
       return
@@ -217,7 +217,7 @@ export default function UserProfile() {
     setErrorMsg(null)
 
     // Force check all fields
-    if (!fullName.trim() || !phone.trim() || !learningGroup || !workGroup || !position || !academicStanding || !advisorRole.trim() || !responsibleRoom.trim()) {
+    if (!fullName.trim() || !phone.trim() || !learningGroup || !workGroup || !position || !advisorRole.trim() || !responsibleRoom.trim()) {
       setErrorMsg('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วนทุกช่อง')
       setAlertConfig({ 
         type: 'error', 
@@ -999,7 +999,7 @@ export default function UserProfile() {
               onChange={(e) => setAcademicStanding(e.target.value)}
               style={{ appearance: 'auto' }}
             >
-              <option value="">-- เลือกวิทยฐานะ --</option>
+              <option value="">-- ไม่ระบุ / ไม่มี (ค่าว่าง) --</option>
               <option value="ไม่มีวิทยฐานะ">ไม่มีวิทยฐานะ</option>
               <option value="ครูชำนาญการ">ครูชำนาญการ</option>
               <option value="ครูชำนาญการพิเศษ">ครูชำนาญการพิเศษ</option>
@@ -1265,15 +1265,14 @@ export default function UserProfile() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">วิทยฐานะ (Academic Standing) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <label className="form-label">วิทยฐานะ (Academic Standing)</label>
                 <select 
                   className="form-input" 
                   value={academicStanding} 
                   onChange={(e) => setAcademicStanding(e.target.value)}
                   style={{ appearance: 'auto' }}
-                  required
                 >
-                  <option value="">-- เลือกวิทยฐานะ --</option>
+                  <option value="">-- ไม่ระบุ / ไม่มี (ค่าว่าง) --</option>
                   <option value="ไม่มีวิทยฐานะ">ไม่มีวิทยฐานะ</option>
                   <option value="ครูชำนาญการ">ครูชำนาญการ</option>
                   <option value="ครูชำนาญการพิเศษ">ครูชำนาญการพิเศษ</option>

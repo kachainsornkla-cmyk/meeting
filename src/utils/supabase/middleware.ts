@@ -59,7 +59,6 @@ export async function updateSession(request: NextRequest) {
       !profile.learning_group || profile.learning_group.trim() === '' ||
       !profile.work_group || profile.work_group.trim() === '' ||
       !profile.position || profile.position.trim() === '' ||
-      !profile.academic_standing || profile.academic_standing.trim() === '' ||
       !profile.advisor_role || profile.advisor_role.trim() === '' ||
       !profile.responsible_room || profile.responsible_room.trim() === '';
 

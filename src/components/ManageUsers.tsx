@@ -481,7 +481,7 @@ export default function ManageUsers({ users: initialUsers }: ManageUsersProps) {
                   onChange={(e) => setAcademicStanding(e.target.value)}
                   style={{ appearance: 'auto' }}
                 >
-                  <option value="">-- เลือกวิทยฐานะ --</option>
+                  <option value="">-- ไม่ระบุ / ไม่มี (ค่าว่าง) --</option>
                   <option value="ไม่มีวิทยฐานะ">ไม่มีวิทยฐานะ</option>
                   <option value="ครูชำนาญการ">ครูชำนาญการ</option>
                   <option value="ครูชำนาญการพิเศษ">ครูชำนาญการพิเศษ</option>

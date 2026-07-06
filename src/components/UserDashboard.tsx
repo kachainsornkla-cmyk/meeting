@@ -218,22 +218,6 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
             />
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <Filter size={16} style={{ color: 'var(--text-secondary)' }} />
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>ความจุห้อง:</span>
-          <select
-            className="form-input"
-            style={{ width: 'auto', padding: '8px 16px', cursor: 'pointer' }}
-            value={capacityFilter}
-            onChange={(e) => setCapacityFilter(e.target.value)}
-          >
-            <option value="all">ทั้งหมด</option>
-            <option value="small">ขนาดเล็ก (น้อยกว่า 6 คน)</option>
-            <option value="medium">ขนาดกลาง (6-10 คน)</option>
-            <option value="large">ขนาดใหญ่ (มากกว่า 10 คน)</option>
-          </select>
-        </div>
       </div>
 
       {/* Rooms Grid */}
@@ -263,23 +247,6 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
                 backgroundPosition: 'center',
                 position: 'relative'
               }}>
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(13, 20, 35, 0.85)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.8rem',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
-                  <Users size={12} style={{ color: 'var(--primary)' }} />
-                  <span>{room.capacity} ที่นั่ง</span>
-                </div>
               </div>
 
               {/* Room Details */}
@@ -384,7 +351,7 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
               จองห้องประชุม: {selectedRoom.name}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              {selectedRoom.location} • ความจุ {selectedRoom.capacity} ที่นั่ง
+              {selectedRoom.location}
             </p>
 
             {/* Main Content Layout */}
