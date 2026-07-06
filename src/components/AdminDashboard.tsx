@@ -50,7 +50,7 @@ const getRoomColors = (roomName: string) => {
 }
 
 export default function AdminDashboard({ bookings, userRole }: AdminDashboardProps) {
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
   const [filter, setFilter] = useState<string>('all')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   
