@@ -62,6 +62,10 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
   const [selectedDayBookings, setSelectedDayBookings] = useState<{ date: Date; items: BookingItem[] } | null>(null)
   const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
   // Monthly Navigation State
   const [currentDate, setCurrentDate] = useState(new Date())
   const year = currentDate.getFullYear()
@@ -77,6 +81,11 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
     if (filter === 'all') return true
     return b.status === filter
   })
+
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredBookings.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
 
   // Monthly Calendar logic
   const handlePrevMonth = () => {
@@ -356,49 +365,76 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
       {/* VIEW CONDITIONAL RENDERING */}
       {viewMode === 'list' ? (
         <>
-          {/* Filter Tabs (Only shown in List View) */}
+          {/* Filter Tabs & Pagination Size Selector */}
           <div style={{
             display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            paddingBottom: '12px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
             marginBottom: '24px',
-            borderBottom: '1px solid var(--border-color)'
+            borderBottom: '1px solid var(--border-color)',
+            paddingBottom: '16px'
           }}>
-            {[
-              { key: 'all', label: 'ทั้งหมด' },
-              { key: 'pending', label: 'รออนุมัติ' },
-              { key: 'approved', label: 'อนุมัติแล้ว' },
-              { key: 'rejected', label: 'ปฏิเสธแล้ว' },
-              { key: 'cancelled', label: 'ยกเลิกแล้ว' }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className="btn"
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '0.85rem',
-                  borderRadius: '8px',
-                  background: filter === tab.key ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                  color: filter === tab.key ? 'white' : 'var(--text-secondary)',
-                  border: filter === tab.key ? 'none' : '1px solid var(--border-color)',
-                  boxShadow: filter === tab.key ? '0 4px 10px rgba(255, 182, 193, 0.4)' : 'none'
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', flex: 1, paddingBottom: '4px' }}>
+              {[
+                { key: 'all', label: 'ทั้งหมด' },
+                { key: 'pending', label: 'รออนุมัติ' },
+                { key: 'approved', label: 'อนุมัติแล้ว' },
+                { key: 'rejected', label: 'ปฏิเสธแล้ว' },
+                { key: 'cancelled', label: 'ยกเลิกแล้ว' }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setFilter(tab.key)
+                    setCurrentPage(1)
+                  }}
+                  className="btn"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '0.85rem',
+                    borderRadius: '8px',
+                    background: filter === tab.key ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                    color: filter === tab.key ? 'white' : 'var(--text-secondary)',
+                    border: filter === tab.key ? 'none' : '1px solid var(--border-color)',
+                    boxShadow: filter === tab.key ? '0 4px 10px rgba(255, 182, 193, 0.4)' : 'none'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Pagination Size Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <span>แสดงผล:</span>
+              <select 
+                value={itemsPerPage} 
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
                 }}
+                className="form-input"
+                style={{ width: 'auto', padding: '6px 24px 6px 12px', borderRadius: '8px', fontSize: '0.85rem', appearance: 'auto', background: 'white' }}
               >
-                {tab.label}
-              </button>
-            ))}
+                <option value={5}>5 รายการต่อหน้า</option>
+                <option value={10}>10 รายการต่อหน้า</option>
+                <option value={20}>20 รายการต่อหน้า</option>
+                <option value={50}>50 รายการต่อหน้า</option>
+              </select>
+            </div>
           </div>
 
           {/* Bookings List */}
-          {filteredBookings.length === 0 ? (
+          {currentItems.length === 0 ? (
             <div className="glass-panel" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
               ไม่พบข้อมูลรายการจองห้องประชุม
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {filteredBookings.map((b) => (
+              {currentItems.map((b) => (
                 <div key={b.id} className="glass-panel animate-fade-in" style={{ padding: '24px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
                     <div>
@@ -494,6 +530,63 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination Navigation */}
+          {totalPages > 1 && (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginTop: '24px', 
+              paddingTop: '16px',
+              borderTop: '1px solid var(--border-color)',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                แสดงรายการที่ {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredBookings.length)} จากทั้งหมด {filteredBookings.length} รายการ
+              </span>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                >
+                  ◀ ย้อนกลับ
+                </button>
+
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className="btn"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.8rem',
+                      borderRadius: '6px',
+                      background: currentPage === pageNum ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                      color: currentPage === pageNum ? 'white' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      minWidth: '32px'
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                >
+                  ถัดไป ▶
+                </button>
+              </div>
             </div>
           )}
         </>
