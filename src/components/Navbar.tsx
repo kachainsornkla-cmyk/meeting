@@ -336,6 +336,35 @@ export default function Navbar({ userName, role }: NavbarProps) {
     }
   }, [])
 
+  // Manage layout offset class on body
+  useEffect(() => {
+    document.body.classList.add('has-sidebar')
+    return () => {
+      document.body.classList.remove('has-sidebar')
+    }
+  }, [])
+
+  const getPageTitle = (path: string) => {
+    switch (path) {
+      case '/dashboard':
+        return 'จองห้องประชุม'
+      case '/dashboard/my-bookings':
+        return 'การจองของฉัน'
+      case '/manage':
+        return 'การจองทั้งหมด'
+      case '/manage/rooms':
+        return 'จัดการห้องประชุม'
+      case '/manage/users':
+        return 'จัดการผู้ใช้งาน'
+      case '/manage/settings':
+        return 'ตั้งค่าระบบ'
+      case '/profile':
+        return 'โปรไฟล์ส่วนตัว'
+      default:
+        return 'ระบบจองห้องประชุม'
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -420,96 +449,113 @@ export default function Navbar({ userName, role }: NavbarProps) {
   }
 
   return (
-    <nav className="navbar" style={{ position: 'relative', zIndex: 900 }}>
-      <div className="nav-container">
-        <Link href={isAdminArea ? '/manage' : '/dashboard'} className="nav-brand">
-          <Calendar size={24} />
-          <span>BOOKING PWK-ROOM</span>
-        </Link>
+    <>
+      {/* Sidebar Overlay */}
+      <div 
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'open' : ''}`} 
+        onClick={() => setIsMobileMenuOpen(false)} 
+      />
 
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          <div className="nav-menu">
-            {isAdminArea ? (
-              <>
-                <Link 
-                  href="/manage" 
-                  className={`nav-link ${pathname === '/manage' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <LayoutDashboard size={16} />
-                  การจองทั้งหมด
-                </Link>
-                {['admin', 'subadmin', 'admin booking'].includes(role) && (
-                  <Link 
-                    href="/dashboard" 
-                    className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Calendar size={16} />
-                    จองห้องประชุม
-                  </Link>
-                )}
-                {['admin', 'subadmin'].includes(role) && (
-                  <Link 
-                    href="/manage/rooms" 
-                    className={`nav-link ${pathname === '/manage/rooms' ? 'active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <ListPlus size={16} />
-                    จัดการห้องประชุม
-                  </Link>
-                )}
-                {role === 'admin' && (
-                  <Link 
-                    href="/manage/users" 
-                    className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Users size={16} />
-                    จัดการผู้ใช้งาน
-                  </Link>
-                )}
-                {['admin', 'subadmin'].includes(role) && (
-                  <Link 
-                    href="/manage/settings" 
-                    className={`nav-link ${pathname === '/manage/settings' ? 'active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Shield size={16} />
-                    ตั้งค่าระบบ
-                  </Link>
-                )}
-              </>
+      {/* Sidebar Navigation */}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo">
+          <Calendar size={22} style={{ color: 'var(--primary)' }} />
+          <span>PWK-ROOM BOOKING</span>
+        </div>
+
+        <div className="sidebar-profile">
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            background: 'rgba(255, 182, 193, 0.25)',
+            border: '2px solid var(--primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            color: 'var(--primary)',
+            fontSize: '1.1rem',
+            fontWeight: 700,
+            flexShrink: 0
+          }}>
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="Avatar" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
             ) : (
-              <>
-                <Link 
-                  href="/dashboard" 
-                  className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Calendar size={16} />
-                  จองห้องประชุม
-                </Link>
-                <Link 
-                  href="/dashboard/my-bookings" 
-                  className={`nav-link ${pathname === '/dashboard/my-bookings' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <LayoutDashboard size={16} />
-                  การจองของฉัน
-                </Link>
-              </>
+              <span>{displayName.charAt(0).toUpperCase()}</span>
             )}
-            <Link 
-              href="/profile" 
-              className={`nav-link ${pathname === '/profile' ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <User size={16} />
-              โปรไฟล์
-            </Link>
           </div>
+          <div className="sidebar-profile-info">
+            <span className="sidebar-profile-name">{displayName}</span>
+            <div style={{ marginTop: '2px' }}>{renderBadge()}</div>
+          </div>
+        </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '24px' }}>
+          <div className="sidebar-section-title">เมนูหลัก</div>
+          <Link href="/dashboard" className={`sidebar-link ${pathname === '/dashboard' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+            <Calendar size={18} />
+            <span>จองห้องประชุม</span>
+          </Link>
+          <Link href="/dashboard/my-bookings" className={`sidebar-link ${pathname === '/dashboard/my-bookings' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+            <LayoutDashboard size={18} />
+            <span>การจองของฉัน</span>
+          </Link>
+
+          {isAdminArea && (
+            <>
+              <div className="sidebar-section-title">ผู้ดูแลระบบ</div>
+              <Link href="/manage" className={`sidebar-link ${pathname === '/manage' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+                <LayoutDashboard size={18} />
+                <span>การจองทั้งหมด</span>
+              </Link>
+              {['admin', 'subadmin'].includes(role) && (
+                <Link href="/manage/rooms" className={`sidebar-link ${pathname === '/manage/rooms' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+                  <ListPlus size={18} />
+                  <span>จัดการห้องประชุม</span>
+                </Link>
+              )}
+              {role === 'admin' && (
+                <Link href="/manage/users" className={`sidebar-link ${pathname === '/manage/users' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Users size={18} />
+                  <span>จัดการผู้ใช้งาน</span>
+                </Link>
+              )}
+              {['admin', 'subadmin'].includes(role) && (
+                <Link href="/manage/settings" className={`sidebar-link ${pathname === '/manage/settings' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Shield size={18} />
+                  <span>ตั้งค่าระบบ</span>
+                </Link>
+              )}
+            </>
+          )}
+
+          <div className="sidebar-section-title">ข้อมูลส่วนตัว</div>
+          <Link href="/profile" className={`sidebar-link ${pathname === '/profile' ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
+            <User size={18} />
+            <span>โปรไฟล์ส่วนตัว</span>
+          </Link>
+        </div>
+      </aside>
+
+      {/* Top Header Bar */}
+      <header className="top-header">
+        <div className="top-header-left">
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            className="sidebar-toggle-btn"
+            aria-label="Toggle Sidebar"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="top-header-title">{getPageTitle(pathname)}</span>
+        </div>
+
+        <div className="top-header-right">
           {/* Real-time Notifications Bell Dropdown */}
           <div style={{ position: 'relative' }}>
             <button 
@@ -628,230 +674,17 @@ export default function Navbar({ userName, role }: NavbarProps) {
             )}
           </div>
 
-          <div className="nav-user">
-            <Link href="/profile" className="nav-profile-link" style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px',
-              textDecoration: 'none',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease',
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
-                  {displayName}
-                </span>
-                {renderBadge()}
-              </div>
-
-              {/* Avatar Circle */}
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
-                background: 'rgba(255, 182, 193, 0.25)',
-                border: '2px solid var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                color: 'var(--primary)',
-                fontSize: '1rem',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}>
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Avatar" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                  />
-                ) : (
-                  <span>{displayName.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-            </Link>
-
-            <button 
-              onClick={handleLogout} 
-              className="btn btn-secondary" 
-              style={{ padding: '8px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <LogOut size={14} />
-              <span>ออก</span>
-            </button>
-          </div>
-
-          {/* Mobile Hamburger Toggle */}
+          {/* Quick Logout */}
           <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className="btn btn-secondary mobile-menu-toggle" 
-            style={{
-              padding: '8px',
-              borderRadius: '50%',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255, 182, 193, 0.12)',
-              color: 'var(--primary)',
-              border: 'none',
-              cursor: 'pointer',
-              width: '38px',
-              height: '38px'
-            }}
+            onClick={handleLogout} 
+            className="btn btn-secondary" 
+            style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            <LogOut size={14} />
+            <span>ออก</span>
           </button>
         </div>
-      </div>
-
-      {/* Mobile Navigation Drawer */}
-      {isMobileMenuOpen && (
-        <div className="mobile-drawer animate-fade-in" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          padding: '16px 24px',
-          background: 'white',
-          borderBottom: '1px solid var(--border-color)',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.05)',
-        }}>
-          {isAdminArea ? (
-            <>
-              <Link 
-                href="/manage" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`nav-link ${pathname === '/manage' ? 'active' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-              >
-                <LayoutDashboard size={18} />
-                <span>การจองทั้งหมด</span>
-              </Link>
-              {['admin', 'subadmin', 'admin booking'].includes(role) && (
-                <Link 
-                  href="/dashboard" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-                >
-                  <Calendar size={18} />
-                  <span>จองห้องประชุม</span>
-                </Link>
-              )}
-              {['admin', 'subadmin'].includes(role) && (
-                <Link 
-                  href="/manage/rooms" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`nav-link ${pathname === '/manage/rooms' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-                >
-                  <ListPlus size={18} />
-                  <span>จัดการห้องประชุม</span>
-                </Link>
-              )}
-              {role === 'admin' && (
-                <Link 
-                  href="/manage/users" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`nav-link ${pathname === '/manage/users' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-                >
-                  <Users size={18} />
-                  <span>จัดการผู้ใช้งาน</span>
-                </Link>
-              )}
-              {['admin', 'subadmin'].includes(role) && (
-                <Link 
-                  href="/manage/settings" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`nav-link ${pathname === '/manage/settings' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-                >
-                  <Shield size={18} />
-                  <span>ตั้งค่าระบบ</span>
-                </Link>
-              )}
-            </>
-          ) : (
-            <>
-              <Link 
-                href="/dashboard" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-              >
-                <Calendar size={18} />
-                <span>จองห้องประชุม</span>
-              </Link>
-              <Link 
-                href="/dashboard/my-bookings" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`nav-link ${pathname === '/dashboard/my-bookings' ? 'active' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
-              >
-                <LayoutDashboard size={18} />
-                <span>การจองของฉัน</span>
-              </Link>
-            </>
-          )}
-          <Link 
-            href="/profile" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`nav-link ${pathname === '/profile' ? 'active' : ''}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}
-          >
-            <User size={18} />
-            <span>โปรไฟล์</span>
-          </Link>
-          
-          {/* User Info and Logout inside Mobile Drawer */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderTop: '1px solid var(--border-color)', marginTop: '4px' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'rgba(255, 182, 193, 0.25)',
-              border: '2px solid var(--primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              color: 'var(--primary)',
-              fontSize: '1rem',
-              fontWeight: 700,
-              flexShrink: 0,
-            }}>
-              {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt="Avatar" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
-              ) : (
-                <span>{displayName.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>
-                {displayName}
-              </div>
-              {renderBadge()}
-            </div>
-            <button 
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                handleLogout();
-              }} 
-              className="btn btn-secondary" 
-              style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              <LogOut size={12} />
-              <span>ออก</span>
-            </button>
-          </div>
-        </div>
-      )}
+      </header>
 
       {/* Real-time In-App Notification Toast */}
       {toast && (
@@ -905,19 +738,6 @@ export default function Navbar({ userName, role }: NavbarProps) {
             bottom: 24px !important;
           }
         }
-        @media (max-width: 768px) {
-          .mobile-menu-toggle {
-            display: flex !important;
-          }
-          .nav-user {
-            display: none !important;
-          }
-        }
-        @media (min-width: 769px) {
-          .mobile-drawer {
-            display: none !important;
-          }
-        }
         @keyframes slideInNoti {
           from {
             transform: translateX(120%);
@@ -929,6 +749,6 @@ export default function Navbar({ userName, role }: NavbarProps) {
           }
         }
       ` }} />
-    </nav>
+    </>
   )
 }
