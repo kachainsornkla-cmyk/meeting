@@ -560,7 +560,11 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
             gap: '8px'
           }}>
             {getDaysInMonth().map((cell, idx) => {
-              const dayBookings = bookings.filter(b => isSameDate(cell.date, b.start_time))
+              const dayBookings = bookings.filter(b => 
+                isSameDate(cell.date, b.start_time) && 
+                b.status !== 'rejected' && 
+                b.status !== 'cancelled'
+              )
               const isToday = isSameDate(cell.date, new Date().toISOString())
               
               return (

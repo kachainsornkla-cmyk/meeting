@@ -26,9 +26,10 @@ interface Booking {
 interface UserDashboardProps {
   rooms: Room[]
   bookings: Booking[]
+  userRole?: string
 }
 
-export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
+export default function UserDashboard({ rooms, bookings, userRole }: UserDashboardProps) {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [capacityFilter, setCapacityFilter] = useState<string>('all')
@@ -148,11 +149,17 @@ export default function UserDashboard({ rooms, bookings }: UserDashboardProps) {
       setErrorMsg(result.error)
       setAlertConfig({ type: 'error', title: 'จองห้องประชุมไม่สำเร็จ', message: result.error })
     } else {
-      setSuccessMsg('ส่งคำขอจองห้องประชุมเรียบร้อยแล้ว! กำลังรอผู้ดูแลระบบอนุมัติ')
+      const autoApproveRoles = ['admin', 'subadmin', 'admin booking']
+      const isAutoApprove = userRole && autoApproveRoles.includes(userRole)
+      const msg = isAutoApprove
+        ? 'จองห้องประชุมสำเร็จเรียบร้อยแล้ว!'
+        : 'ส่งคำขอจองห้องประชุมเรียบร้อยแล้ว! กำลังรอผู้ดูแลระบบอนุมัติ'
+
+      setSuccessMsg(msg)
       setAlertConfig({ 
         type: 'success', 
         title: 'จองห้องประชุมสำเร็จ', 
-        message: 'ส่งคำขอจองห้องประชุมเรียบร้อยแล้ว! กำลังรอผู้ดูแลระบบอนุมัติ' 
+        message: msg 
       })
       setPurpose('')
       setSelectedRoom(null) // Close modal immediately on success

@@ -36,6 +36,18 @@ export async function createBooking(formData: {
     return { error: 'ไม่สามารถจองห้องประชุมในอดีตได้' }
   }
 
+  // Get user role to determine if it should be auto-approved
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const userRole = profile?.role || 'user'
+  const autoApproveRoles = ['admin', 'subadmin', 'admin booking']
+  const isAutoApprove = autoApproveRoles.includes(userRole)
+  const status = isAutoApprove ? 'approved' : 'pending'
+
   // 3. Double booking prevention (Check overlapping bookings)
   // Overlap condition:
   // A booking overlaps if: start_time < new_end_time AND end_time > new_start_time
@@ -66,7 +78,7 @@ export async function createBooking(formData: {
       start_time: start.toISOString(),
       end_time: end.toISOString(),
       purpose: formData.purpose,
-      status: 'pending' // Default status is pending
+      status: status // Use determined status
     })
 
   if (insertError) {
@@ -94,8 +106,10 @@ export async function createBooking(formData: {
       const dateStr = start.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok' })
       const timeStr = `${start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' })}-${end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' })}`
       
-      const title = 'คำขอจองห้องประชุมใหม่'
-      const content = `${userName} ได้ขอจองห้อง ${roomName} ในวันที่ ${dateStr} เวลา ${timeStr} น. (รอการอนุมัติ)`
+      const title = isAutoApprove ? 'อนุมัติการจองห้องประชุมสำเร็จ' : 'คำขอจองห้องประชุมใหม่'
+      const content = isAutoApprove
+        ? `${userName} ได้ขอจองห้อง ${roomName} ในวันที่ ${dateStr} เวลา ${timeStr} น. (อนุมัติทันที)`
+        : `${userName} ได้ขอจองห้อง ${roomName} ในวันที่ ${dateStr} เวลา ${timeStr} น. (รอการอนุมัติ)`
 
       // Fetch notify target roles from system settings
       const { data: config } = await supabase

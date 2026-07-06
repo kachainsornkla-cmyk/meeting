@@ -439,6 +439,16 @@ export default function Navbar({ userName, role }: NavbarProps) {
                   <LayoutDashboard size={16} />
                   การจองทั้งหมด
                 </Link>
+                {['admin', 'subadmin', 'admin booking'].includes(role) && (
+                  <Link 
+                    href="/dashboard" 
+                    className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Calendar size={16} />
+                    จองห้องประชุม
+                  </Link>
+                )}
                 {['admin', 'subadmin'].includes(role) && (
                   <Link 
                     href="/manage/rooms" 
@@ -718,6 +728,17 @@ export default function Navbar({ userName, role }: NavbarProps) {
                 <LayoutDashboard size={18} />
                 <span>การจองทั้งหมด</span>
               </Link>
+              {['admin', 'subadmin', 'admin booking'].includes(role) && (
+                <Link 
+                  href="/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}
+                >
+                  <Calendar size={18} />
+                  <span>จองห้องประชุม</span>
+                </Link>
+              )}
               {['admin', 'subadmin'].includes(role) && (
                 <Link 
                   href="/manage/rooms" 

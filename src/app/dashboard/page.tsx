@@ -62,7 +62,7 @@ export default async function DashboardPage() {
     <>
       <Navbar userName={profile.full_name || 'User'} role={profile.role} />
       <main className="container animate-fade-in">
-        <UserDashboard rooms={rooms || []} bookings={formattedBookings} />
+        <UserDashboard rooms={rooms || []} bookings={formattedBookings} userRole={profile.role} />
       </main>
     </>
   )
