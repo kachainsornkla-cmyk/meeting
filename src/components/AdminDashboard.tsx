@@ -789,7 +789,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
           zIndex: 1100,
           padding: '20px'
         }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '32px', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <div className="glass-panel animate-popup" style={{ width: '100%', maxWidth: '450px', padding: '32px', border: '1px solid rgba(0,0,0,0.06)' }}>
             <h2 style={{ fontSize: '1.3rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={20} style={{ color: 'var(--danger)' }} />
               ปฏิเสธคำขอจองห้องประชุม
@@ -849,7 +849,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
           zIndex: 1000,
           padding: '20px'
         }}>
-          <div className="glass-panel animate-fade-in" style={{
+          <div className="glass-panel animate-popup" style={{
             width: '100%',
             maxWidth: '700px',
             maxHeight: '90vh',

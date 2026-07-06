@@ -197,8 +197,8 @@ export default function AlertModal({ type, title, message, onClose, autoCloseMs 
           to { opacity: 1; }
         }
         @keyframes scaleUpContent {
-          from { transform: scale(0.92); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
+          from { transform: translateY(-50px) scale(0.95); opacity: 0; }
+          to { transform: translateY(0) scale(1); opacity: 1; }
         }
         .alert-close-btn:hover {
           background-color: rgba(0, 0, 0, 0.05);

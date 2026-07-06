@@ -353,7 +353,7 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
           zIndex: 1000,
           padding: '20px'
         }}>
-          <div className="glass-panel animate-fade-in" style={{
+          <div className="glass-panel animate-popup" style={{
             width: '100%',
             maxWidth: '650px',
             maxHeight: '90vh',
