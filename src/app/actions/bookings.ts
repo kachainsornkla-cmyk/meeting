@@ -10,6 +10,7 @@ export async function createBooking(formData: {
   startTime: string
   endTime: string
   purpose: string
+  participantsCount: number
 }) {
   const supabase = await createClient()
 
@@ -34,6 +35,25 @@ export async function createBooking(formData: {
 
   if (start < now) {
     return { error: 'ไม่สามารถจองห้องประชุมในอดีตได้' }
+  }
+
+  // 2.5 Fetch room capacity to validate participant count
+  const { data: roomData, error: roomError } = await supabase
+    .from('rooms')
+    .select('name, capacity')
+    .eq('id', formData.roomId)
+    .single()
+
+  if (roomError || !roomData) {
+    return { error: 'ไม่พบข้อมูลห้องประชุมดังกล่าว' }
+  }
+
+  if (!formData.participantsCount || isNaN(formData.participantsCount) || formData.participantsCount <= 0) {
+    return { error: 'กรุณาระบุจำนวนผู้เข้าร่วมประชุมให้ถูกต้อง' }
+  }
+
+  if (formData.participantsCount > roomData.capacity) {
+    return { error: `จำนวนผู้เข้าร่วมประชุม (${formData.participantsCount} คน) เกินความจุของห้อง (${roomData.capacity} คน)` }
   }
 
   // Get user role to determine if it should be auto-approved
@@ -78,6 +98,7 @@ export async function createBooking(formData: {
       start_time: start.toISOString(),
       end_time: end.toISOString(),
       purpose: formData.purpose,
+      participants_count: formData.participantsCount,
       status: status // Use determined status
     })
 
@@ -94,11 +115,7 @@ export async function createBooking(formData: {
       .eq('id', user.id)
       .single()
       
-    const { data: roomData } = await supabase
-      .from('rooms')
-      .select('name')
-      .eq('id', formData.roomId)
-      .single()
+    // We already fetched roomData above
 
     if (userProfile && roomData) {
       const userName = userProfile.full_name || 'ผู้ใช้'

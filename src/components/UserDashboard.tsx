@@ -42,6 +42,7 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
   const [purpose, setPurpose] = useState('')
+  const [participantsCount, setParticipantsCount] = useState<number>(1)
   
   // Status states
   const [submitting, setSubmitting] = useState(false)
@@ -136,11 +137,23 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
       return
     }
 
+    if (participantsCount > selectedRoom.capacity) {
+      setErrorMsg(`จำนวนผู้เข้าร่วมประชุม (${participantsCount} คน) เกินความจุของห้อง (${selectedRoom.capacity} คน)`)
+      setAlertConfig({ 
+        type: 'error', 
+        title: 'ข้อมูลไม่ถูกต้อง', 
+        message: `จำนวนผู้เข้าร่วมประชุม (${participantsCount} คน) เกินความจุของห้อง (${selectedRoom.capacity} คน)` 
+      })
+      setSubmitting(false)
+      return
+    }
+
     const result = await createBooking({
       roomId: selectedRoom.id,
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       purpose,
+      participantsCount,
     })
 
     setSubmitting(false)
@@ -162,6 +175,7 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
         message: msg 
       })
       setPurpose('')
+      setParticipantsCount(1)
       setSelectedRoom(null) // Close modal immediately on success
     }
   }
@@ -403,6 +417,23 @@ export default function UserDashboard({ rooms, bookings, userRole }: UserDashboa
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="participants_count">จำนวนผู้เข้าร่วมประชุม (คน)</label>
+                  <input
+                    id="participants_count"
+                    type="number"
+                    className="form-input"
+                    min={1}
+                    max={selectedRoom.capacity}
+                    value={participantsCount}
+                    onChange={(e) => setParticipantsCount(Number(e.target.value))}
+                    required
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    * จำนวนผู้เข้าร่วมสูงสุดของห้องนี้คือ {selectedRoom.capacity} คน
+                  </span>
                 </div>
 
                 <div className="form-group">

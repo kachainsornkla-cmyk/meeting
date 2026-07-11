@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { updateBookingStatus } from '@/app/actions/bookings'
 import { 
   Calendar, Clock, User, Mail, Check, X, AlertCircle, 
-  FileText, CheckSquare, XSquare, ShieldAlert, List, CalendarDays 
+  FileText, CheckSquare, XSquare, ShieldAlert, List, CalendarDays, Users 
 } from 'lucide-react'
 import AlertModal from '@/components/AlertModal'
 
@@ -15,6 +15,7 @@ interface BookingItem {
   end_time: string
   purpose: string
   status: string
+  participantsCount: number
   rejection_reason: string | null
   roomName: string
   roomLocation: string
@@ -514,6 +515,14 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Users size={16} style={{ color: 'var(--primary)' }} />
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ผู้เข้าร่วมประชุม</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{b.participantsCount} คน</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <FileText size={16} style={{ color: 'var(--primary)' }} />
                       <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>วัตถุประสงค์</div>
@@ -929,6 +938,7 @@ export default function AdminDashboard({ bookings, userRole }: AdminDashboardPro
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.65)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.03)' }}>
                         <div>🕒 <strong>เวลา:</strong> {formatTime(b.start_time)} - {formatTime(b.end_time)} น.</div>
                         <div>👤 <strong>ผู้จอง:</strong> {b.userFullName}</div>
+                        <div>👥 <strong>ผู้เข้าร่วม:</strong> {b.participantsCount} คน</div>
                         <div style={{ gridColumn: 'span 2' }}>📝 <strong>วัตถุประสงค์:</strong> {b.purpose}</div>
                       </div>
 

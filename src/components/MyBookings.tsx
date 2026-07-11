@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { cancelBooking } from '@/app/actions/bookings'
-import { Calendar, Clock, MapPin, AlertTriangle, FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Calendar, Clock, MapPin, AlertTriangle, FileText, CheckCircle, XCircle, Trash2, Users } from 'lucide-react'
 import AlertModal from '@/components/AlertModal'
 
 interface BookingItem {
@@ -12,6 +12,7 @@ interface BookingItem {
   end_time: string
   purpose: string
   status: string
+  participantsCount: number
   rejection_reason: string | null
   roomName: string
   roomLocation: string
@@ -218,6 +219,14 @@ export default function MyBookings({ bookings, userRole, allowedCancelRoles }: M
                     <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
                       {formatTime(b.start_time)} - {formatTime(b.end_time)} น.
                     </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Users size={16} style={{ color: 'var(--primary)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ผู้เข้าร่วม</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{b.participantsCount} คน</div>
                   </div>
                 </div>
 

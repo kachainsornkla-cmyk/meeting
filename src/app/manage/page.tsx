@@ -40,6 +40,7 @@ export default async function AdminPage() {
       end_time,
       purpose,
       status,
+      participants_count,
       rejection_reason,
       rooms (
         name,
@@ -59,6 +60,7 @@ export default async function AdminPage() {
     end_time: b.end_time,
     purpose: b.purpose,
     status: b.status,
+    participantsCount: b.participants_count,
     rejection_reason: b.rejection_reason,
     roomName: b.rooms?.name || 'ห้องประชุมถูกลบแล้ว',
     roomLocation: b.rooms?.location || 'ไม่ระบุสถานที่',
