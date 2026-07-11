@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { getSystemSetting, updateSystemSetting } from '@/app/actions/settings'
-import { Shield, Bell, CheckCircle, AlertCircle, RefreshCw, Save } from 'lucide-react'
+import { Shield, Bell, CheckCircle, AlertCircle, RefreshCw, Save, Lock } from 'lucide-react'
 import AlertModal from '@/components/AlertModal'
 
 export default function SystemSettings() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [editApprovedRoles, setEditApprovedRoles] = useState<string[]>([])
   const [reminderBeforeMins, setReminderBeforeMins] = useState(15)
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -35,6 +36,16 @@ export default function SystemSettings() {
         setSelectedRoles(['admin', 'subadmin', 'admin booking'])
       }
 
+      // Load edit approved booking roles
+      const resEdit = await getSystemSetting('edit_approved_booking_roles')
+      if (resEdit.error) {
+        setErrorMsg(resEdit.error)
+      } else if (resEdit.value) {
+        setEditApprovedRoles(resEdit.value)
+      } else {
+        setEditApprovedRoles(['admin', 'subadmin', 'admin booking'])
+      }
+
       // Load pre-meeting warning minutes
       const resRemind = await getSystemSetting('reminder_before_minutes')
       if (resRemind.error) {
@@ -58,6 +69,16 @@ export default function SystemSettings() {
     })
   }
 
+  const handleEditApprovedRoleChange = (roleKey: string) => {
+    setEditApprovedRoles((prev) => {
+      if (prev.includes(roleKey)) {
+        return prev.filter((r) => r !== roleKey)
+      } else {
+        return [...prev, roleKey]
+      }
+    })
+  }
+
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaveLoading(true)
@@ -72,6 +93,14 @@ export default function SystemSettings() {
       return
     }
 
+    const resEdit = await updateSystemSetting('edit_approved_booking_roles', editApprovedRoles)
+    if (resEdit.error) {
+      setErrorMsg(resEdit.error)
+      setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: resEdit.error })
+      setSaveLoading(false)
+      return
+    }
+
     const res2 = await updateSystemSetting('reminder_before_minutes', reminderBeforeMins)
     setSaveLoading(false)
 
@@ -79,8 +108,8 @@ export default function SystemSettings() {
       setErrorMsg(res2.error)
       setAlertConfig({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: res2.error })
     } else {
-      setSuccessMsg('บันทึกการตั้งค่าระบบและบทบาทการแจ้งเตือนเรียบร้อยแล้ว')
-      setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกการตั้งค่าระบบและบทบาทการแจ้งเตือนเรียบร้อยแล้ว' })
+      setSuccessMsg('บันทึกการตั้งค่าระบบและสิทธิ์การจองเรียบร้อยแล้ว')
+      setAlertConfig({ type: 'success', title: 'บันทึกสำเร็จ', message: 'บันทึกการตั้งค่าระบบและสิทธิ์การจองเรียบร้อยแล้ว' })
     }
   }
 
@@ -186,6 +215,59 @@ export default function SystemSettings() {
                 </label>
               )
             })}
+          </div>
+
+          {/* Approved Booking Edit Role Settings Card */}
+          <div style={{ marginBottom: '28px', background: 'rgba(0,0,0,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={18} style={{ color: 'var(--primary)' }} />
+              สิทธิ์การแก้ไข/ยกเลิกการจองที่อนุมัติแล้ว
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
+              เลือกบทบาท (Roles) ที่ได้รับอนุญาตให้แก้ไขหรือยกเลิกการจองห้องประชุมที่ได้รับการอนุมัติเรียบร้อยแล้วได้
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {rolesList.map((role) => {
+                const isChecked = editApprovedRoles.includes(role.key)
+                return (
+                  <label
+                    key={`edit-${role.key}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: isChecked ? '1px solid rgba(255, 182, 193, 0.4)' : '1px solid var(--border-color)',
+                      background: isChecked ? 'rgba(255, 182, 193, 0.04)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = isChecked ? 'rgba(255, 182, 193, 0.4)' : 'var(--border-color)'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleEditApprovedRoleChange(role.key)}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        accentColor: 'var(--primary)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.85rem', fontWeight: isChecked ? 600 : 500, color: 'var(--text-primary)' }}>
+                      {role.label}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
           </div>
 
           {/* Pre-Meeting Reminder Settings Card */}

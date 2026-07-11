@@ -196,6 +196,31 @@ export async function cancelBooking(bookingId: string) {
     return { error: 'รายการจองนี้ได้รับการยกเลิกไปแล้ว' }
   }
 
+  // Check if booking is already approved and user role is allowed to cancel/edit
+  if (booking.status === 'approved') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const userRole = profile?.role || 'user'
+
+    const { data: config } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'edit_approved_booking_roles')
+      .single()
+
+    const targetRoles = Array.isArray(config?.value)
+      ? config.value
+      : ['admin', 'subadmin', 'admin booking']
+
+    if (!targetRoles.includes(userRole)) {
+      return { error: 'คุณไม่มีสิทธิ์ในการยกเลิกหรือแก้ไขรายการจองที่ได้รับการอนุมัติแล้ว' }
+    }
+  }
+
   // Fetch booking details for notification context before updating
   const { data: bookingDetail } = await supabase
     .from('bookings')
@@ -283,7 +308,8 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
     .single()
 
   const allowedRoles = ['admin', 'subadmin', 'admin booking']
-  if (!allowedRoles.includes(profile?.role || '')) {
+  const userRole = profile?.role || ''
+  if (!allowedRoles.includes(userRole)) {
     return { error: 'คุณไม่มีสิทธิ์ในการอนุมัติหรือปฏิเสธคำขอจองห้องประชุม' }
   }
 
@@ -293,12 +319,29 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
     .select(`
       user_id,
       start_time,
+      status,
       rooms (
         name
       )
     `)
     .eq('id', bookingId)
     .single()
+
+  if (bookingData && bookingData.status === 'approved') {
+    const { data: config } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'edit_approved_booking_roles')
+      .single()
+
+    const targetRoles = Array.isArray(config?.value)
+      ? config.value
+      : ['admin', 'subadmin', 'admin booking']
+
+    if (!targetRoles.includes(userRole)) {
+      return { error: 'คุณไม่มีสิทธิ์ในการแก้ไขหรือเปลี่ยนสถานะการจองที่ได้รับการอนุมัติแล้ว' }
+    }
+  }
 
   // Update status
   const updateData: any = { status }

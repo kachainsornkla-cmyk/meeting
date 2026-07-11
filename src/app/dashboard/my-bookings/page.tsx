@@ -56,11 +56,26 @@ export default async function MyBookingsPage() {
     roomLocation: b.rooms?.location || 'ไม่ระบุสถานที่'
   }))
 
+  // Fetch allowed cancel roles setting
+  const { data: config } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'edit_approved_booking_roles')
+    .single()
+
+  const allowedCancelRoles = Array.isArray(config?.value)
+    ? config.value
+    : ['admin', 'subadmin', 'admin booking']
+
   return (
     <>
       <Navbar userName={profile.full_name || 'User'} role={profile.role} />
       <main className="container animate-fade-in">
-        <MyBookings bookings={formattedBookings} />
+        <MyBookings 
+          bookings={formattedBookings} 
+          userRole={profile.role}
+          allowedCancelRoles={allowedCancelRoles}
+        />
       </main>
     </>
   )

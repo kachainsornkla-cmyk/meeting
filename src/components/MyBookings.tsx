@@ -19,13 +19,17 @@ interface BookingItem {
 
 interface MyBookingsProps {
   bookings: BookingItem[]
+  userRole?: string
+  allowedCancelRoles?: string[]
 }
 
-export default function MyBookings({ bookings }: MyBookingsProps) {
+export default function MyBookings({ bookings, userRole, allowedCancelRoles }: MyBookingsProps) {
   const [filter, setFilter] = useState<string>('all')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [alertConfig, setAlertConfig] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string } | null>(null)
+
+  const allowedCancelRolesList = allowedCancelRoles || ['admin', 'subadmin', 'admin booking']
 
   const filteredBookings = bookings.filter((b) => {
     if (filter === 'all') return true
@@ -166,7 +170,7 @@ export default function MyBookings({ bookings }: MyBookingsProps) {
                   {getStatusBadge(b.status)}
                   
                   {/* Cancel Button */}
-                  {(b.status === 'pending' || b.status === 'approved') && (
+                  {(b.status === 'pending' || (b.status === 'approved' && allowedCancelRolesList.includes(userRole || ''))) && (
                     <button
                       onClick={() => handleCancel(b.id)}
                       disabled={cancellingId === b.id}
